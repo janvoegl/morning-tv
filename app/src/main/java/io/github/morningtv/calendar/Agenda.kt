@@ -7,6 +7,7 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonPrimitive
 
 /** One line in the appointment list. [timeLabel]: "09:00", "until 11:00" or "" (all-day). */
 data class AgendaItem(val title: String, val timeLabel: String, val allDay: Boolean)
@@ -21,8 +22,11 @@ private data class PayloadEvent(
     val title: String = "",
     val start: String = "",
     val end: String = "",
-    val allDay: Boolean = false,
-)
+    /** JSON boolean, or text such as "Yes"/"No" as the iPhone Shortcuts app may send it. */
+    val allDay: JsonPrimitive? = null,
+) {
+    val isAllDay: Boolean get() = allDay?.content?.trim()?.lowercase() in setOf("true", "yes", "1")
+}
 
 private val json = Json { ignoreUnknownKeys = true }
 private val HHMM = DateTimeFormatter.ofPattern("HH:mm")
@@ -44,7 +48,7 @@ fun parseAgenda(text: String, today: LocalDate, zone: ZoneId): Agenda? {
         val touchesToday = start < dayEnd && (end > dayStart || start >= dayStart)
         if (!touchesToday) continue
         val title = e.title.trim().ifEmpty { "(no title)" }
-        if (e.allDay) {
+        if (e.isAllDay) {
             allDay += AgendaItem(title, "", true)
         } else {
             val label = if (start < dayStart) "until ${end.format(HHMM)}" else start.format(HHMM)

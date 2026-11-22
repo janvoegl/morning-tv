@@ -93,4 +93,16 @@ class AgendaTest {
         )!!
         assertEquals(1, a.timed.size)
     }
+
+    @Test
+    fun allDayAcceptsShortcutsStyleStrings() {
+        val a = parseAgenda(
+            """{"events":[{"title":"A","start":"2026-11-23T00:00:00+01:00","end":"2026-11-24T00:00:00+01:00","allDay":"Yes"},""" +
+                """{"title":"B","start":"2026-11-23T08:00:00+01:00","end":"2026-11-23T09:00:00+01:00","allDay":"No"},""" +
+                """{"title":"C","start":"2026-11-23T00:00:00+01:00","end":"2026-11-24T00:00:00+01:00","allDay":"1"}]}""",
+            today, vienna
+        )!!
+        assertEquals(listOf("A", "C"), a.allDay.map { it.title })
+        assertEquals(listOf("B"), a.timed.map { it.title })
+    }
 }
