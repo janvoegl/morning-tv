@@ -19,7 +19,10 @@ import io.github.morningtv.standby.StandbyTimer
 import io.github.morningtv.standby.countdownLabel
 import io.github.morningtv.transport.POST_BODY_EXTRA
 import io.github.morningtv.transport.extractPayload
+import io.github.morningtv.ui.DatedAgenda
+import io.github.morningtv.ui.agendaForToday
 import io.github.morningtv.ui.agendaRows
+import io.github.morningtv.ui.isFreshLaunch
 import io.github.morningtv.ui.greeting
 import io.github.morningtv.ui.rainLine
 import io.github.morningtv.weather.WeatherClient
@@ -40,7 +43,7 @@ class MainActivity : Activity() {
     private val handler = Handler(Looper.getMainLooper())
     private val timer = StandbyTimer { System.currentTimeMillis() }
     private lateinit var config: AppConfig
-    private var agenda: Agenda? = null
+    private var agenda: DatedAgenda? = null
     private var standbyRequested = false
 
     private val tick = object : Runnable {
@@ -56,7 +59,7 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         config = loadConfig()
-        handleLaunch(intent)
+        if (isFreshLaunch(intent.flags, restored = savedInstanceState != null)) handleLaunch(intent)
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -90,8 +93,8 @@ class MainActivity : Activity() {
      */
     private fun handleLaunch(intent: Intent): Boolean {
         val payload = extractPayload(intent.getByteArrayExtra(POST_BODY_EXTRA)) ?: return false
-        agenda = parseAgenda(payload, LocalDate.now(config.timezone), config.timezone)
-            ?: Agenda(emptyList(), emptyList())
+        val today = LocalDate.now(config.timezone)
+        agenda = DatedAgenda(today, parseAgenda(payload, today, config.timezone) ?: Agenda(emptyList(), emptyList()))
         standbyRequested = false
         timer.arm(config.standbyMinutes)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -139,7 +142,7 @@ class MainActivity : Activity() {
         val box = findViewById<LinearLayout>(R.id.agenda)
         val density = resources.displayMetrics.density
         box.removeAllViews()
-        for (row in agendaRows(agenda)) {
+        for (row in agendaRows(agendaForToday(agenda, LocalDate.now(config.timezone)))) {
             val line = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
             if (row.time.isNotEmpty()) line.addView(TextView(this).apply {
                 text = row.time
