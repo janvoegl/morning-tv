@@ -6,7 +6,6 @@ import java.time.ZoneId
 /** All user settings. Personal values come from the git-ignored local config via [ConfigReceiver]. */
 data class AppConfig(
     val tvPsk: String,
-    val receiverToken: String,
     val greetingName: String,
     val latitude: Double,
     val longitude: Double,
@@ -19,7 +18,7 @@ data class AppConfig(
 
         /** Config keys, identical to `config/example.properties`. */
         val KEYS = listOf(
-            "tv_psk", "receiver_token", "greeting_name", "latitude", "longitude",
+            "tv_psk", "greeting_name", "latitude", "longitude",
             "location_name", "timezone", "standby_minutes",
         )
 
@@ -30,7 +29,6 @@ data class AppConfig(
             val minutes = str("standby_minutes").toIntOrNull()?.takeIf { it > 0 } ?: DEFAULT_STANDBY_MINUTES
             return AppConfig(
                 tvPsk = str("tv_psk"),
-                receiverToken = str("receiver_token"),
                 greetingName = str("greeting_name"),
                 latitude = coord("latitude"),
                 longitude = coord("longitude"),

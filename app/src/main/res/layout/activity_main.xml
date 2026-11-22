@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FF10161F"
+    android:orientation="vertical"
+    android:paddingStart="64dp"
+    android:paddingTop="40dp"
+    android:paddingEnd="64dp"
+    android:paddingBottom="32dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        <TextView android:id="@+id/greeting" android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:textColor="#FFF2EBDD" android:textSize="44sp" />
+        <TextView android:id="@+id/clock" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:textColor="#FFB8C2CF" android:textSize="28sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="36dp"
+        android:layout_weight="1"
+        android:orientation="horizontal">
+
+        <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
+            android:layout_weight="1" android:orientation="vertical">
+            <TextView android:id="@+id/weatherTitle" style="@style/SectionTitle" android:text="@string/weather_title" />
+            <TextView android:id="@+id/weatherNow" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginTop="12dp" android:textColor="#FFF2EBDD" android:textSize="40sp" />
+            <TextView android:id="@+id/weatherDetail" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginTop="8dp" android:lineSpacingExtra="6dp" android:textColor="#FFB8C2CF" android:textSize="24sp" />
+            <TextView android:id="@+id/weatherHours" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginTop="20dp" android:fontFamily="monospace" android:lineSpacingExtra="4dp"
+                android:textColor="#FFB8C2CF" android:textSize="22sp" />
+        </LinearLayout>
+
+        <View android:layout_width="1dp" android:layout_height="match_parent" android:layout_marginStart="32dp"
+            android:layout_marginEnd="32dp" android:background="#FF2A3644" />
+
+        <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
+            android:layout_weight="1" android:orientation="vertical">
+            <TextView style="@style/SectionTitle" android:text="@string/agenda_title" />
+            <LinearLayout android:id="@+id/agenda" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="12dp" android:orientation="vertical" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+        <TextView android:id="@+id/status" android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:textColor="#FFE08A6B" android:textSize="18sp" />
+        <TextView android:id="@+id/countdown" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:textColor="#FF7D8896" android:textSize="18sp" />
+    </LinearLayout>
+</LinearLayout>

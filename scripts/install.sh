@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Builds the app, installs it on the TV over ADB and pushes config/local.properties
-# into the app. Env MTV_TV_PSK / MTV_RECEIVER_TOKEN override tv_psk / receiver_token.
+# into the app. Env MTV_TV_PSK overrides tv_psk.
 # Turn on "Network debugging" on the TV first; turn it off again afterwards.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"; cd "$ROOT"
@@ -14,7 +14,6 @@ while IFS= read -r line || [ -n "$line" ]; do
   conf["${line%%=*}"]="${line#*=}"
 done < "$CFG"
 [ -n "${MTV_TV_PSK:-}" ] && conf[tv_psk]="$MTV_TV_PSK"
-[ -n "${MTV_RECEIVER_TOKEN:-}" ] && conf[receiver_token]="$MTV_RECEIVER_TOKEN"
 HOST="${conf[tv_host]:-}"
 [ -n "$HOST" ] || { echo "tv_host is not set in $CFG" >&2; exit 1; }
 DEV="$HOST:5555"

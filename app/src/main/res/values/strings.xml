@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Morning TV</string>
+    <string name="weather_title">TODAY\'S WEATHER</string>
+    <string name="agenda_title">TODAY\'S APPOINTMENTS</string>
 </resources>

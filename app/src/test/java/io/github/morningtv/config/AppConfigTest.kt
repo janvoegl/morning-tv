@@ -11,7 +11,6 @@ class AppConfigTest {
         val cfg = AppConfig.fromMap(
             mapOf(
                 "tv_psk" to "psk123",
-                "receiver_token" to "tok456",
                 "greeting_name" to "Alex",
                 "latitude" to "48.2082",
                 "longitude" to "16.3738",
@@ -21,7 +20,6 @@ class AppConfigTest {
             )
         )
         assertEquals("psk123", cfg.tvPsk)
-        assertEquals("tok456", cfg.receiverToken)
         assertEquals("Alex", cfg.greetingName)
         assertEquals(48.2082, cfg.latitude, 1e-9)
         assertEquals(16.3738, cfg.longitude, 1e-9)
