@@ -1,0 +1,19 @@
+# Personal config and secrets — never commit
+config/local.properties
+*.local.*
+.env
+.env.*
+
+# Android / Gradle
+.gradle/
+build/
+local.properties
+*.apk
+*.aab
+*.keystore
+*.jks
+captures/
+.idea/
+*.iml
+.externalNativeBuild/
+.cxx/
