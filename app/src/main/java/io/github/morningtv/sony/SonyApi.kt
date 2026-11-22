@@ -17,6 +17,22 @@ class SonyApi(
         if (status != 200) throw IOException("HTTP $status")
         if (reply.contains("\"error\"")) throw IOException("TV refused standby")
     }
+
+    /** [standby] with up to [attempts] tries, [delayMs] apart, so one hiccup doesn't leave the TV on. */
+    fun standbyWithRetry(
+        psk: String,
+        attempts: Int = 3,
+        delayMs: Long = 30_000L,
+        sleep: (Long) -> Unit = Thread::sleep,
+    ): Result<Unit> {
+        var result = standby(psk)
+        repeat(attempts - 1) {
+            if (result.isSuccess) return result
+            sleep(delayMs)
+            result = standby(psk)
+        }
+        return result
+    }
 }
 
 /** Plain HTTP POST returning (status, body). */

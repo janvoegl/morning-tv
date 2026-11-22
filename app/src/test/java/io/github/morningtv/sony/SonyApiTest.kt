@@ -33,4 +33,22 @@ class SonyApiTest {
         val api = SonyApi { _, _, _ -> throw IOException("refused") }
         assertTrue(api.standby("x").isFailure)
     }
+
+    @Test
+    fun standbyRetriesThenSucceeds() {
+        var calls = 0
+        val sleeps = mutableListOf<Long>()
+        val api = SonyApi { _, _, _ -> calls++; if (calls < 3) throw IOException("busy") else 200 to """{"result":[]}""" }
+        assertTrue(api.standbyWithRetry("x", sleep = { sleeps += it }).isSuccess)
+        assertEquals(3, calls)
+        assertEquals(listOf(30_000L, 30_000L), sleeps)
+    }
+
+    @Test
+    fun standbyRetryGivesUpAfterThreeAttempts() {
+        var calls = 0
+        val api = SonyApi { _, _, _ -> calls++; 200 to """{"error":[403,"Forbidden"]}""" }
+        assertTrue(api.standbyWithRetry("x", sleep = {}).isFailure)
+        assertEquals(3, calls)
+    }
 }

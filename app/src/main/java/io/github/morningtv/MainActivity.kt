@@ -175,13 +175,14 @@ class MainActivity : Activity() {
         standbyRequested = true
         val psk = config.tvPsk
         Thread {
-            val result = SonyApi().standby(psk)
+            val result = SonyApi().standbyWithRetry(psk)
             runOnUiThread {
-                if (result.isFailure && !isDestroyed) {
-                    text(R.id.status).text = "Could not switch the TV off"
-                    timer.cancel()
-                    renderCountdown()
-                }
+                if (isDestroyed) return@runOnUiThread
+                timer.cancel()
+                renderCountdown()
+                // Never hold the screen on after the timer ran out, even if standby failed.
+                window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                if (result.isFailure) text(R.id.status).text = "Could not switch the TV off"
             }
         }.start()
     }
