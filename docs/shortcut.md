@@ -47,7 +47,7 @@ Every TV request is a **Get Contents of URL** action with:
 
 **Collect today's appointments**
 
-7. **Find Calendar Events** where **Start Date** **is today**, sort by **Start Date**, **Limit** 25.
+7. **Find Calendar Events** where **Start Date** **is today**, sort by **Start Date**, **Limit** 15.
 8. **Repeat with Each** *Calendar Events*:
    - **Format Date** *Repeat Item → Start Date*, format **ISO 8601**, include time → rename result to *Start*.
    - **Format Date** *Repeat Item → End Date*, format **ISO 8601**, include time → rename to *End*.
@@ -63,9 +63,15 @@ Every TV request is a **Get Contents of URL** action with:
     `method` = `setActiveApp`, `id` = `1`, `version` = `1.0`, `params` (Array) → one **Dictionary** item with
     `uri` (Text) = `com.sony.dtv.io.github.morningtv.io.github.morningtv.MainActivity` and `data` (Text) = *Payload*.
 
+**Safety net: don't leave the TV on**
+
+12. **If** *Contents of URL* (from step 11) **does not contain** `result` → Get Contents of URL (`/sony/system`), JSON body:
+    `method` = `setPowerStatus`, `id` = `1`, `version` = `1.0`, `params` (Array) → one **Dictionary** with `status` (Boolean) = **false**. **End If**.
+    (If the app could not be started — e.g. the payload was too large — the TV would otherwise stay on all day.)
+
 ## Notes
 
-- **Size limit:** the TV drops launch data over roughly 6 KB, so keep the limit in step 7 at about 25 events.
+- **Size limit:** keep the payload under about **5 KB** (5.7 KB worked, 8.6 KB was dropped on the test TV). 15 events with normal titles stay well below that; step 12 switches the TV off again if it is exceeded.
 - Events that started yesterday (e.g. a night shift) are not found by "Start Date is today".
 - Not at home or TV already on → the Shortcut stops quietly.
 - If the appointments are missing but the app opens, check step 10: the text must be valid JSON. Opening the Shortcut by hand and adding **Quick Look** on *Payload* shows what is sent.

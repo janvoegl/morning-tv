@@ -62,6 +62,7 @@ Then build the iPhone Shortcut: **[docs/shortcut.md](docs/shortcut.md)**.
 ```bash
 source scripts/env.sh
 ./gradlew :app:testDebugUnitTest   # unit tests
+tests/install_test.sh              # install script against a fake adb
 ./gradlew :app:assembleDebug       # APK
 ```
 

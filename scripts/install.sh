@@ -11,7 +11,9 @@ CFG="config/local.properties"
 declare -A conf
 while IFS= read -r line || [ -n "$line" ]; do
   case "$line" in ''|\#*) continue;; esac
-  conf["${line%%=*}"]="${line#*=}"
+  key="${line%%=*}"; value="${line#*=}"
+  key="$(echo "$key" | xargs)"; value="${value#"${value%%[![:space:]]*}"}"; value="${value%"${value##*[![:space:]]}"}"
+  conf["$key"]="$value"
 done < "$CFG"
 [ -n "${MTV_TV_PSK:-}" ] && conf[tv_psk]="$MTV_TV_PSK"
 HOST="${conf[tv_host]:-}"
@@ -24,8 +26,13 @@ adb -s "$DEV" install -r app/build/outputs/apk/debug/app-debug.apk
 quote() { printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"; }
 for key in "${!conf[@]}"; do
   case "$key" in tv_host|home_wifi) continue;; esac
-  adb -s "$DEV" shell am broadcast -n io.github.morningtv/.config.ConfigReceiver \
-    -a io.github.morningtv.SET_CONFIG --es key "$key" --es value "$(quote "${conf[$key]}")" >/dev/null
+  # -f 0x20 = FLAG_INCLUDE_STOPPED_PACKAGES: a freshly installed app is "stopped"
+  reply=$(adb -s "$DEV" shell am broadcast -f 0x20 -n io.github.morningtv/.config.ConfigReceiver \
+    -a io.github.morningtv.SET_CONFIG --es key "$key" --es value "$(quote "${conf[$key]}")")
+  if [[ "$reply" != *"ok:$key"* ]]; then
+    echo "the app did not accept '$key' (unknown key or app not reachable)" >&2
+    adb disconnect "$DEV" >/dev/null; exit 1
+  fi
   echo "set $key"
 done
 adb disconnect "$DEV" >/dev/null
