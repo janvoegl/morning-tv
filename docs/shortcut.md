@@ -1,8 +1,11 @@
-# iPhone Shortcut
+# Phone automation
 
-The Shortcut runs when your chosen alarm goes off. It checks that you are at home and the TV is off, wakes the TV, and starts Morning TV with today's appointments.
+When your alarm rings, the phone wakes the TV and starts Morning TV. Two variants:
 
-Placeholders — replace them with your own values:
+- **iPhone:** a Shortcut named "Morning TV" does the work and a personal automation runs it when an alarm rings. It also sends today's events from the iPhone calendar.
+- **Android:** an automation app does the same TV calls. Android has no counterpart of the iPhone calendar step, so the appointments come from the optional [Google calendar address](../README.md#google-calendar-optional) instead.
+
+Placeholders, replace them with your own values:
 
 | Placeholder | What it is |
 |---|---|
@@ -13,20 +16,17 @@ Placeholders — replace them with your own values:
 The app URI is the same for everyone:
 `com.sony.dtv.io.github.morningtv.io.github.morningtv.MainActivity`
 
-## 1. Create the automation
+Every TV request is an HTTP **POST** with the header `X-Auth-PSK: <PSK>`, a JSON body, and the URL `http://<TV_IP>/sony/system` (power) or `http://<TV_IP>/sony/appControl` (start the app).
 
-1. Shortcuts app → **Automation** → **+** → **Alarm**.
-2. Choose **Goes Off**, then **Existing** and pick your workday alarm.
-3. Choose **Run Immediately** and turn **Notify When Run** off.
-4. Create a **New Blank Automation** and add the actions below.
+---
 
-## 2. Actions
+# iPhone
 
-Every TV request is a **Get Contents of URL** action with:
-- URL `http://<TV_IP>/sony/system` (or `/sony/appControl` where noted)
-- Method **POST**
-- Header `X-Auth-PSK` = `<PSK>`
-- Request Body **JSON** with the fields listed
+Your iPhone shows German names for the Shortcuts actions below. The names here are the English ones; search the action list by what the action does. Example: *Get Network Details* is "Netzwerkdetails abrufen".
+
+## 1. The Shortcut "Morning TV"
+
+Create a new Shortcut named **Morning TV** with these actions.
 
 **Am I home?**
 
@@ -67,12 +67,63 @@ Every TV request is a **Get Contents of URL** action with:
 
 12. **If** *Contents of URL* (from step 11) **does not contain** `result` → Get Contents of URL (`/sony/system`), JSON body:
     `method` = `setPowerStatus`, `id` = `1`, `version` = `1.0`, `params` (Array) → one **Dictionary** with `status` (Boolean) = **false**. **End If**.
-    (If the app could not be started — e.g. the payload was too large — the TV would otherwise stay on all day.)
+    (If the app could not be started, e.g. because the payload was too large or the TV refused the call, the TV would otherwise stay on all day.)
 
-## Notes
+**Test it by hand first:** switch the TV to standby, then run the Shortcut from the Shortcuts app. The TV should wake and show the screen.
 
-- **Size limit:** keep the payload under about **5 KB** (5.7 KB worked, 8.6 KB was dropped on the test TV). 15 events with normal titles stay well below that; step 12 switches the TV off again if it is exceeded.
+## 2. The automation that runs it
+
+Labels are from Apple's German Shortcuts guide for iOS 26 ([create a personal automation](https://support.apple.com/de-at/guide/shortcuts/apdfbdbd7123/ios), [event triggers](https://support.apple.com/de-at/guide/shortcuts/apd932ff833f/ios)). Labels marked *(not confirmed)* were not on those pages and may look different on your iOS version.
+
+1. Open **Kurzbefehle** and tap **Automation**. If you already have automations, tap the "+" at the top right.
+2. Tap **Persönliche Automation erstellen**.
+3. Choose the trigger **Wecker**.
+4. Pick the alarm:
+   - **Beliebig**: any alarm triggers it, also weekend and nap alarms.
+   - **Bereits vorhanden**: pick one saved alarm, e.g. your workday alarm. Use this if the TV should not wake on other alarms.
+5. Choose the event that means "the alarm rings" *(not confirmed; Apple's page lists **Schlummert** and **Gestoppt ist** as events)*. Alternative: **Gestoppt ist**, then the TV wakes when you stop the alarm.
+6. Tap **Weiter**, then add the action that runs your Shortcut **Morning TV** *(action name not confirmed)*.
+7. Make it run without asking: **Sofort ausführen** and, if shown, **Beim Ausführen benachrichtigen** off *(not confirmed)*.
+8. Tap **Fertig**.
+
+Some users report that automations stopped running after iOS 26 updates. If it does not fire, run the Shortcut by hand to check the Shortcut itself, then recreate the automation.
+
+---
+
+# Android
+
+The phone sends the same three calls, but without calendar events, because Android has no equivalent of steps 7 to 10. The appointments come from the app's own **Google calendar address** (`google_ical_url`, see the README), which the app fetches itself.
+
+You need an automation app that can react to an alarm and send HTTP requests. Examples are Tasker and MacroDroid; this guide was **not tested** with either, and the menu names differ per app and per Android version, so no labels are given here.
+
+**Trigger:** your alarm clock goes off (the app's "alarm" trigger). Optional condition: connected to `<HOME_WIFI>`.
+
+**Actions, in this order:**
+
+1. POST `http://<TV_IP>/sony/system`, header `X-Auth-PSK: <PSK>`, body
+   `{"method":"getPowerStatus","id":1,"params":[],"version":"1.0"}`.
+   If the reply contains `active`, stop: the TV is already on.
+2. POST `http://<TV_IP>/sony/system`, same header, body
+   `{"method":"setPowerStatus","id":1,"params":[{"status":true}],"version":"1.0"}`.
+3. Wait 8 seconds.
+4. POST `http://<TV_IP>/sony/appControl`, same header, body
+   `{"method":"setActiveApp","id":1,"params":[{"uri":"com.sony.dtv.io.github.morningtv.io.github.morningtv.MainActivity","data":"{\"events\":[]}"}],"version":"1.0"}`
+   The `data` must not be empty: any non-empty value makes the app arm the standby timer. `{"events":[]}` means "no events from the phone", and the app then shows the Google calendar.
+5. Safety net: if the reply of action 4 does not contain `result`, POST to `/sony/system` with
+   `{"method":"setPowerStatus","id":1,"params":[{"status":false}],"version":"1.0"}`.
+
+Without a Google calendar address the app shows "no appointments" but still works as a weather and clock screen with the standby timer.
+
+---
+
+# Notes
+
+- **Size limit (iPhone):** keep the payload under about **5 KB** (5.7 KB worked, 8.6 KB was dropped on the test TV). 15 events with normal titles stay well below that; step 12 switches the TV off again if it is exceeded.
 - Events that started yesterday (e.g. a night shift) are not found by "Start Date is today".
-- Not at home or TV already on → the Shortcut stops quietly.
+- Not at home or TV already on: the automation stops quietly.
 - If the appointments are missing but the app opens, check step 10: the text must be valid JSON. Opening the Shortcut by hand and adding **Quick Look** on *Payload* shows what is sent.
-- The TV goes back to standby after `standby_minutes`. Pressing Home on the remote cancels that.
+- The TV goes back to standby after `standby_minutes`. Pressing Home on the remote cancels that. Opening the app by hand never starts the timer.
+
+## Troubleshooting
+
+- **`/sony/appControl` answers `403 Forbidden`** while `/sony/system` works with the same key: seen on a KD-55XE8505 in November 2026 for `setActiveApp` and `getApplicationList`; the cause is not known. In that case the Shortcut cannot start the app, and the safety net switches the TV off again. Check *Settings → Network → Home network → IP control → Authentication* (**Normal and Pre-Shared Key**) and that the key matches, then open an issue with your TV model.

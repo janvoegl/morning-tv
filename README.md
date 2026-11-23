@@ -22,7 +22,7 @@ Weather comes from [Open-Meteo](https://open-meteo.com) (free, no key).
   - Settings → Network → Home network → IP control → Authentication **Normal and Pre-Shared Key**, set a key.
   - Wake-on-LAN / "Remote start" on, so the TV can be woken over the network.
   - A fixed IP for the TV (DHCP reservation in your router).
-- An iPhone with the Shortcuts app.
+- An iPhone with the Shortcuts app, or an Android phone with an automation app (Android: appointments come from the Google calendar address).
 - A Linux computer to build and install (no root needed).
 
 ## Setup
@@ -45,7 +45,7 @@ scripts/install.sh
 #    Afterwards turn Network debugging OFF again.
 ```
 
-Then build the iPhone Shortcut: **[docs/shortcut.md](docs/shortcut.md)**.
+Then set up the phone side (iPhone Shortcut + automation, or Android): **[docs/shortcut.md](docs/shortcut.md)**.
 
 `scripts/tv.sh status|on|off|apps|launch` is a small helper to try the TV's API from the computer.
 
