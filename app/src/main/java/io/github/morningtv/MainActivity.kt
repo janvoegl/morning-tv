@@ -83,6 +83,7 @@ class MainActivity : Activity() {
     /** Today's agenda from an earlier launch (hand start); null once this launch brought its own. */
     private var cachedStamp: String? = null
     private var weatherFallback = ""
+    private var lastGraphMinute = -1L
     private var statusOverride: String? = null
     private var hiddenCount = 0
     private val timelineMode get() = config.layout == ScreenLayout.TIMELINE
@@ -95,7 +96,9 @@ class MainActivity : Activity() {
         override fun run() {
             renderClock()
             renderCountdown()
-            if (timelineMode) renderAgenda()
+            // The graph only changes with the minute.
+            val minute = (System.currentTimeMillis() / 60_000L)
+            if (timelineMode && minute != lastGraphMinute) { lastGraphMinute = minute; renderAgenda() }
             if (timer.isDue() && !standbyRequested) goToStandby()
             handler.postDelayed(this, TICK_MS)
         }
@@ -497,7 +500,7 @@ class MainActivity : Activity() {
     private fun text(id: Int): TextView = findViewById(id)
 
     private companion object {
-        const val TICK_MS = 30_000L
+        const val TICK_MS = 5_000L
         val OPEN_SETTINGS_KEYS = setOf(KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_MENU, KeyEvent.KEYCODE_SETTINGS)
         const val STATE_PREFS = "morningtv_state"
         const val CACHE_KEY = "agenda_cache"
