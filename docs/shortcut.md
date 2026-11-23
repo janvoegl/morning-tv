@@ -43,7 +43,7 @@ Create a new Shortcut named **Morning TV** with these actions.
 
 5. **If** *TVOn* **is** `false`:
    - Get Contents of URL (`/sony/system`), JSON body:
-     `method` = `setPowerStatus`, `id` = `1`, `version` = `1.0`, `params` (Array) → one **Dictionary** item with `status` (Boolean) = **true**.
+     `method` = `setPowerStatus`, `id` (Number) = `1`, `version` = `1.0`, `params` (Array) → one **Dictionary** item with `status` (Boolean) = **true**.
    - **Wait** 8 seconds. (The TV reports "on" after about 4 s; the extra time lets its home screen settle.)
    - **End If**.
 
@@ -63,13 +63,13 @@ Create a new Shortcut named **Morning TV** with these actions.
 **Start Morning TV**
 
 11. Get Contents of URL (`/sony/appControl`), JSON body:
-    `method` = `setActiveApp`, `id` = `1`, `version` = `1.0`, `params` (Array) → one **Dictionary** item with
+    `method` = `setActiveApp`, `id` (Number) = `1`, `version` = `1.0`, `params` (Array) → one **Dictionary** item with
     `uri` (Text) = `com.sony.dtv.io.github.morningtv.io.github.morningtv.MainActivity` and `data` (Text) = *Payload*.
 
 **Safety net: don't leave the TV on**
 
 12. **If** *TVOn* **is** `false`: **If** *Contents of URL* (from step 11) **does not contain** `result` → Get Contents of URL (`/sony/system`), JSON body:
-    `method` = `setPowerStatus`, `id` = `1`, `version` = `1.0`, `params` (Array) → one **Dictionary** with `status` (Boolean) = **false**. **End If**. **End If**.
+    `method` = `setPowerStatus`, `id` (Number) = `1`, `version` = `1.0`, `params` (Array) → one **Dictionary** with `status` (Boolean) = **false**. **End If**. **End If**.
     (If the app could not be started, e.g. because the payload was too large or the key was wrong, the TV would otherwise stay on all day. A TV that was already on is never switched off.)
 
 **Test it by hand first**, twice: with the TV in standby (it should wake and show the screen, and switch off after `standby_minutes`) and with the TV on (the screen opens over what is running and the TV stays on).
@@ -129,6 +129,7 @@ Without a Google calendar address the app shows "no appointments" but still work
 
 ## Troubleshooting
 
+- **The Shortcut waits 8 seconds although the TV is on, and the app never opens:** the `id` field is a **Text** instead of a **Number** in one of the requests. The TV then answers `{"error":[5,"Illegal JSON"]}` to every call, so the Shortcut never sees `active` and the launch fails. In each *Get Contents of URL* action, set `id` to the type **Number** (value `1`). The same applies to the Android recipe: `"id":1`, not `"id":"1"`.
 - **Nothing happens at all:** the Shortcut stops quietly if you are not on `<HOME_WIFI>` (step 2). Test with the phone on the home Wi-Fi.
 - **Works with the TV off but not when it is on:** your Shortcut still has the old step 4 ("contains `active` → Stop This Shortcut"). Replace it with the *TVOn* version above.
 - **The TV wakes but the app does not open, and the TV switches off again:** the launch call (step 11) was refused or the payload was too large; step 12 switches the TV off. Check that `<PSK>` is right (a wrong key gives `403 Forbidden` with an `auth_url` in the reply, also for `setActiveApp`) and the payload size.
