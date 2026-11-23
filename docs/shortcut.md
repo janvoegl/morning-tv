@@ -67,7 +67,7 @@ Create a new Shortcut named **Morning TV** with these actions.
 
 12. **If** *Contents of URL* (from step 11) **does not contain** `result` → Get Contents of URL (`/sony/system`), JSON body:
     `method` = `setPowerStatus`, `id` = `1`, `version` = `1.0`, `params` (Array) → one **Dictionary** with `status` (Boolean) = **false**. **End If**.
-    (If the app could not be started, e.g. because the payload was too large or the TV refused the call, the TV would otherwise stay on all day.)
+    (If the app could not be started, e.g. because the payload was too large or the key was wrong, the TV would otherwise stay on all day.)
 
 **Test it by hand first:** switch the TV to standby, then run the Shortcut from the Shortcuts app. The TV should wake and show the screen.
 
@@ -126,4 +126,6 @@ Without a Google calendar address the app shows "no appointments" but still work
 
 ## Troubleshooting
 
-- **`/sony/appControl` answers `403 Forbidden`** while `/sony/system` works with the same key: seen on a KD-55XE8505 in November 2026 for `setActiveApp` and `getApplicationList`; the cause is not known. In that case the Shortcut cannot start the app, and the safety net switches the TV off again. Check *Settings → Network → Home network → IP control → Authentication* (**Normal and Pre-Shared Key**) and that the key matches, then open an issue with your TV model.
+- **Nothing happens at all:** the Shortcut stops quietly if the TV is already on (step 4) or you are not on `<HOME_WIFI>` (step 2). Test with the TV in standby and the phone on the home Wi-Fi.
+- **The TV wakes but the app does not open, and the TV switches off again:** the launch call (step 11) was refused or the payload was too large; step 12 switches the TV off. Check that `<PSK>` is right (a wrong key gives `403 Forbidden` with an `auth_url` in the reply, also for `setActiveApp`) and the payload size.
+- **Try the calls from a computer:** `scripts/tv.sh status` and `scripts/tv.sh launch <uri> <data>` use the same requests (key via `MTV_TV_PSK`).
