@@ -44,8 +44,10 @@ Create a new Shortcut named **Morning TV** with these actions.
 5. **If** *TVOn* **is** `false`:
    - Get Contents of URL (`/sony/system`), JSON body:
      `method` = `setPowerStatus`, `id` (Number) = `1`, `version` = `1.0`, `params` (Array) → one **Dictionary** item with `status` (Boolean) = **true**.
-   - **Wait** 8 seconds. (The TV reports "on" after about 4 s; the extra time lets its home screen settle.)
+   - **Text** `false` → **Set Variable** *Ready*. **Wait** 3 seconds.
+   - **Repeat** 8 times (that is until about 10 seconds after the wake call): **If** *Ready* **is** `false`: Get Contents of URL (`getPowerStatus` as in step 3); **If** it **contains** `active`: **Text** `true` → **Set Variable** *Ready*; **Otherwise**: **Wait** 1 second. **End If**. **End If**. **End Repeat**.
    - **End If**.
+   (The TV reports "on" after about 4 s. The loop continues as soon as it does, instead of always waiting 8 s. If it never reports "on", the Shortcut still tries to launch after 10 s and the safety net in step 12 applies.)
 
 **Collect today's appointments**
 
@@ -108,7 +110,7 @@ You need an automation app that can react to an alarm and send HTTP requests. Ex
    If the reply contains `active`, set `KEEPON` = `true` and skip actions 2 and 3; otherwise `KEEPON` = `false`.
 2. POST `http://<TV_IP>/sony/system`, same header, body
    `{"method":"setPowerStatus","id":1,"params":[{"status":true}],"version":"1.0"}`.
-3. Wait 8 seconds.
+3. Wait 3 seconds, then repeat action 1 once per second until the reply contains `active`, for at most about 10 seconds after action 2.
 4. POST `http://<TV_IP>/sony/appControl`, same header, body
    `{"method":"setActiveApp","id":1,"params":[{"uri":"com.sony.dtv.io.github.morningtv.io.github.morningtv.MainActivity","data":"{\"events\":[],\"keepOn\":KEEPON}"}],"version":"1.0"}`
    (replace `KEEPON` by `true` or `false`). The `data` must not be empty: any non-empty value makes the app treat this as a phone start. `{"events":[]}` means "no events from the phone", and the app then shows the Google calendar. `"keepOn":true` (TV was already on) opens the app without arming the standby timer.
