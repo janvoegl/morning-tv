@@ -26,7 +26,7 @@ data class WeatherSummary(
     /** First hour from now with precipitation probability >= 30 %, or null. */
     val rainFromHour: Int?,
     val hours: List<HourPoint>,
-    /** Every hour of the day (0..23) for the time graph. */
+    /** Every hour for the time graph: 0..23 is today, 24..47 tomorrow (if the reply has it). */
     val allHours: List<HourPoint> = emptyList(),
 ) {
     /** Daylight at [hour] according to the forecast (true if unknown). */
@@ -37,13 +37,13 @@ data class WeatherSummary(
 private val SHOWN_HOURS = listOf(8, 10, 12, 14, 16, 18, 20, 22)
 private const val RAIN_THRESHOLD = 30
 
-/** Open-Meteo forecast URL for one day at the given location. */
+/** Open-Meteo forecast URL for today and tomorrow at the given location (tomorrow feeds the evening time graph). */
 fun forecastUrl(lat: Double, lon: Double, zone: ZoneId): String =
     "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon" +
         "&current=temperature_2m,weather_code" +
         "&hourly=temperature_2m,precipitation_probability,weather_code,is_day" +
         "&daily=temperature_2m_max,temperature_2m_min" +
-        "&timezone=${URLEncoder.encode(zone.id, "UTF-8")}&forecast_days=1"
+        "&timezone=${URLEncoder.encode(zone.id, "UTF-8")}&forecast_days=2"
 
 /** Parses an Open-Meteo response (see [forecastUrl]). Returns null if anything required is missing. */
 fun parseForecast(json: String, nowHour: Int): WeatherSummary? = runCatching {
@@ -52,7 +52,11 @@ fun parseForecast(json: String, nowHour: Int): WeatherSummary? = runCatching {
     val hourly = root.getValue("hourly").jsonObject
     val daily = root.getValue("daily").jsonObject
 
-    val hoursOfDay = hourly.arr("time").map { it.jsonPrimitive.contentOrNull!!.substringAfter('T').take(2).toInt() }
+    val times = hourly.arr("time").map { it.jsonPrimitive.contentOrNull!! }
+    val hoursOfDay = times.map { it.substringAfter('T').take(2).toInt() }
+    // Day offset of every entry: 0 = the first date in the reply (today), 1 = the next one.
+    val dates = times.map { it.substringBefore('T') }.distinct()
+    val dayIndex = times.map { dates.indexOf(it.substringBefore('T')) }
     val temps = hourly.arr("temperature_2m").map { it.jsonPrimitive.double }
     val probs = hourly.arr("precipitation_probability").map { it.jsonPrimitive.contentOrNull?.toIntOrNull() ?: 0 }
     val codes = hourly.arr("weather_code").map { it.jsonPrimitive.int }
@@ -60,7 +64,7 @@ fun parseForecast(json: String, nowHour: Int): WeatherSummary? = runCatching {
     val days = hourly["is_day"]?.jsonArray?.map { it.jsonPrimitive.int == 1 }
     fun dayAt(i: Int) = days?.getOrNull(i) ?: (hoursOfDay[i] in 6..18)
 
-    val ahead = hoursOfDay.indices.filter { hoursOfDay[it] >= nowHour }
+    val ahead = hoursOfDay.indices.filter { dayIndex[it] == 0 && hoursOfDay[it] >= nowHour }
     WeatherSummary(
         nowTempC = current.getValue("temperature_2m").jsonPrimitive.double.roundToInt(),
         nowCode = current.getValue("weather_code").jsonPrimitive.int,
@@ -69,10 +73,10 @@ fun parseForecast(json: String, nowHour: Int): WeatherSummary? = runCatching {
         rainChance = ahead.maxOfOrNull { probs[it] } ?: 0,
         rainFromHour = ahead.firstOrNull { probs[it] >= RAIN_THRESHOLD }?.let { hoursOfDay[it] },
         hours = SHOWN_HOURS.filter { it >= nowHour }.mapNotNull { h ->
-            val i = hoursOfDay.indexOf(h)
+            val i = hoursOfDay.indices.firstOrNull { dayIndex[it] == 0 && hoursOfDay[it] == h } ?: -1
             if (i < 0) null else HourPoint(h, temps[i].roundToInt(), codes[i], dayAt(i))
         },
-        allHours = hoursOfDay.indices.map { HourPoint(hoursOfDay[it], temps[it].roundToInt(), codes[it], dayAt(it)) },
+        allHours = hoursOfDay.indices.map { HourPoint(dayIndex[it] * 24 + hoursOfDay[it], temps[it].roundToInt(), codes[it], dayAt(it)) },
     )
 }.getOrNull()
 

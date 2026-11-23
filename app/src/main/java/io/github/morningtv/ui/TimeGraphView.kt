@@ -15,7 +15,7 @@ import android.view.View
 import kotlin.math.max
 import kotlin.math.min
 
-/** One weather column of the graph. */
+/** One weather column of the graph; [hour] counts from today 00:00 (24..47 = tomorrow). */
 data class GraphHour(val hour: Int, val tempC: Int, val icon: String)
 
 /** One appointment on the graph. [weather] is the forecast at its start, e.g. "☀ 9°". */
@@ -27,6 +27,8 @@ data class GraphEvent(
 data class GraphData(
     val range: GraphRange, val hours: List<GraphHour>, val events: List<GraphEvent>,
     val nowMin: Int, val nowLabel: String,
+    /** Short weekday of tomorrow, drawn at the midnight line when the graph runs past 24:00. */
+    val tomorrowLabel: String = "",
 )
 
 /**
@@ -77,11 +79,12 @@ class TimeGraphView @JvmOverloads constructor(context: Context, attrs: Attribute
         // hour lines and labels
         for (h in r.firstHour..r.endHour) {
             val lx = (h - r.firstHour) * cw
-            gridPaint.color = if (h % 3 == 0) 0x61FFFFFF else 0x38FFFFFF
+            gridPaint.color = if (h == 24) 0xB0FFFFFF.toInt() else if (h % 3 == 0) 0x61FFFFFF else 0x38FFFFFF
             canvas.drawLine(lx, gridTop, lx, height.toFloat(), gridPaint)
-            if (kotlin.math.abs(h * 60f - g.nowMin) > 36f) {
+            if (kotlin.math.abs(h * 60f - g.nowMin) > 24f) {
                 val half = hourPaint.measureText("00") / 2
-                canvas.drawText("%02d".format(h), lx.coerceIn(half, w - half), 12 * d, hourPaint)
+                val text = if (h == 24 && g.tomorrowLabel.isNotEmpty()) "${g.tomorrowLabel} 00" else "%02d".format(h % 24)
+                canvas.drawText(text, lx.coerceIn(max(half, hourPaint.measureText(text) / 2), w - max(half, hourPaint.measureText(text) / 2)), 12 * d, hourPaint)
             }
         }
         // past
@@ -116,13 +119,16 @@ class TimeGraphView @JvmOverloads constructor(context: Context, attrs: Attribute
 
         // appointments
         val chipPad = 8 * d
-        val measured = g.events.mapIndexed { i, e ->
-            val chipW = min(max(titlePaint.measureText(e.title) + 3 * chipPad, 130 * d), 260 * d)
+        val visible = g.events.filter { it.endMin > r.firstHour * 60 }
+        val measured = visible.mapIndexed { i, e ->
+            // Wide enough for the title (it wraps beyond the maximum) and for time range + forecast on one line.
+            val subW = subPaint.measureText(e.range) + 12 * d + chipWeatherPaint.measureText(e.weather)
+            val chipW = min(max(max(titlePaint.measureText(e.title), subW) + 3 * chipPad, 130 * d), 260 * d)
             ChipRequest(i, e.startMin, chipW)
         }
         val layout = layoutChips(measured, { x(it.toFloat()) }, w, 6 * d)
         // Duration bars for every appointment, also those whose chip did not fit.
-        g.events.forEach { e ->
+        visible.forEach { e ->
             fill.color = e.color
             val ex0 = x(e.startMin.toFloat()); val ex1 = max(ex0 + 6 * d, x(e.endMin.toFloat()))
             canvas.drawRoundRect(RectF(ex0, base - 10 * d, ex1, base - 3 * d), 3.5f * d, 3.5f * d, fill)
@@ -132,7 +138,7 @@ class TimeGraphView @JvmOverloads constructor(context: Context, attrs: Attribute
         var hidden = layout.hidden
         for (lane in lanes.keys.sorted()) {
             val items = lanes.getValue(lane).map { p ->
-                val e = g.events[p.index]; val cwid = measured[p.index].chipWidth
+                val e = visible[p.index]; val cwid = measured[p.index].chipWidth
                 val text = StaticLayout.Builder.obtain(e.title, 0, e.title.length, titlePaint, (cwid - 2 * chipPad - 4 * d).toInt())
                     .setAlignment(Layout.Alignment.ALIGN_NORMAL).build()
                 Triple(p, e, text)
@@ -145,14 +151,18 @@ class TimeGraphView @JvmOverloads constructor(context: Context, attrs: Attribute
                 fill.color = e.color
                 canvas.drawRect(ex0, base - 4 * d, ex0 + 2 * d, y, fill)
                 val rect = RectF(p.left, y, p.left + cwid, y + laneH)
-                fill.color = blend(e.color, 0xFF6A2F9A.toInt(), 0.62f)
+                val over = e.endMin <= g.nowMin  // already finished: drawn faded
+                val a = if (over) 140 else 255
+                fill.color = blend(e.color, 0xFF6A2F9A.toInt(), 0.62f); fill.alpha = a
                 canvas.drawRoundRect(rect, 8 * d, 8 * d, fill)
-                fill.color = e.color
+                fill.color = e.color; fill.alpha = a
                 canvas.drawRoundRect(RectF(rect.left, rect.top, rect.left + 4 * d, rect.bottom), 2 * d, 2 * d, fill)
+                titlePaint.alpha = a; subPaint.alpha = if (over) 120 else 0xCC; chipWeatherPaint.alpha = a
                 canvas.save(); canvas.translate(rect.left + chipPad + 4 * d, rect.top + chipPad * 0.6f); text.draw(canvas); canvas.restore()
                 val subY = rect.top + chipPad * 0.6f + text.height + subPaint.textSize * 1.1f
                 canvas.drawText(e.range, rect.left + chipPad + 4 * d, subY, subPaint)
                 canvas.drawText(e.weather, rect.right - chipPad, subY, chipWeatherPaint)
+                titlePaint.alpha = 255; subPaint.alpha = 0xCC; chipWeatherPaint.alpha = 255; fill.alpha = 255
             }
             y += laneH + 6 * d
         }

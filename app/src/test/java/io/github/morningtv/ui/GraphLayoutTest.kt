@@ -7,19 +7,42 @@ class GraphLayoutTest {
     private fun ev(s: Int, e: Int, i: Int = 0) = TimelineEvent(s, e, i)
 
     @Test
-    fun rangeStartsOneHourBeforeNowAndEndsAt22() {
+    fun morningRangeIsOneHourBackUntil22() {
         assertEquals(GraphRange(6, 22), graphRange(7 * 60 + 20, emptyList()))
     }
 
     @Test
-    fun rangeStartsAtEarlierAppointment() {
-        assertEquals(GraphRange(4, 22), graphRange(7 * 60, listOf(ev(4 * 60 + 30, 5 * 60))))
+    fun eveningRangeKeepsLookingTwelveHoursAheadIntoTomorrow() {
+        assertEquals(GraphRange(19, 31), graphRange(20 * 60 + 5, emptyList()))
+        assertEquals(GraphRange(21, 33), graphRange(22 * 60 + 30, emptyList()))
+        assertEquals(GraphRange(22, 34), graphRange(23 * 60 + 59, emptyList()))
     }
 
     @Test
-    fun rangeExtendsForLateAppointmentUpTo24() {
-        assertEquals(GraphRange(6, 24), graphRange(7 * 60, listOf(ev(22 * 60, 23 * 60 + 30))))
-        assertEquals(GraphRange(6, 23), graphRange(7 * 60, listOf(ev(21 * 60, 22 * 60 + 5))))
+    fun afterMidnightStartsAtZero() {
+        assertEquals(GraphRange(0, 22), graphRange(30, emptyList()))
+    }
+
+    @Test
+    fun recentlyEndedAppointmentPullsTheStartBack() {
+        // now 14:20; appointment 11:00-12:00 ended 2h20m ago -> start 11
+        assertEquals(GraphRange(11, 23), graphRange(14 * 60 + 20, listOf(ev(11 * 60, 12 * 60))))
+        // ended 5h ago: not shown any more
+        assertEquals(GraphRange(13, 25), graphRange(14 * 60 + 20, listOf(ev(8 * 60, 9 * 60))))
+    }
+
+    @Test
+    fun missedAppointmentIsLookedBackAtMostFourHours() {
+        // started 09:00, ended 10:30, now 13:00: ends 2.5 h ago, but its start (9) is 4 h back -> 9
+        assertEquals(9, graphRange(13 * 60, listOf(ev(9 * 60, 10 * 60 + 30))).firstHour)
+        // started 08:00, ended 10:30, now 13:00: start would be 5 h back -> limited to 9
+        assertEquals(9, graphRange(13 * 60, listOf(ev(8 * 60, 10 * 60 + 30))).firstHour)
+    }
+
+    @Test
+    fun lateAppointmentExtendsTheEnd() {
+        assertEquals(24, graphRange(7 * 60, listOf(ev(22 * 60, 23 * 60 + 30))).endHour)
+        assertEquals(23, graphRange(7 * 60, listOf(ev(21 * 60, 22 * 60 + 5))).endHour)
     }
 
     @Test

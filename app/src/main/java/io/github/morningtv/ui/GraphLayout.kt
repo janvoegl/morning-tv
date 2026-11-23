@@ -5,17 +5,29 @@ import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
 
-/** Hour range shown on the time graph. [endHour] is exclusive: the last column is endHour - 1. */
+/**
+ * Hour range shown on the time graph. [firstHour] counts from today 00:00; [endHour] is exclusive and may
+ * exceed 24 (the graph then runs into tomorrow, hour 24 = 00:00 tomorrow).
+ */
 data class GraphRange(val firstHour: Int, val endHour: Int)
 
+const val GRAPH_MIN_SPAN_HOURS = 12
+const val GRAPH_LOOKBACK_HOURS = 4
+const val GRAPH_MAX_HOUR = 48
+
 /**
- * The graph starts one hour before now (or the first appointment, if earlier) and runs to 22:00,
- * or to the end of the last appointment if that is later.
+ * The graph starts one hour before now. Appointments that ended within the last [GRAPH_LOOKBACK_HOURS]
+ * hours pull the start back (to their start hour, at most that far), so a missed appointment stays visible.
+ * It runs at least until 22:00 and at least [GRAPH_MIN_SPAN_HOURS] hours, so it keeps looking ahead
+ * (past midnight into tomorrow); later appointments extend it further, up to [GRAPH_MAX_HOUR].
  */
 fun graphRange(nowMin: Int, events: List<TimelineEvent>): GraphRange {
-    val first = min(nowMin / 60 - 1, events.minOfOrNull { it.startMin / 60 } ?: Int.MAX_VALUE).coerceIn(0, 20)
-    val lastEnd = events.maxOfOrNull { ceil(it.endMin / 60.0).toInt() } ?: 0
-    return GraphRange(first, min(24, max(22, lastEnd)))
+    val nowHour = nowMin / 60
+    val missed = events.filter { it.endMin <= nowMin && it.endMin > nowMin - GRAPH_LOOKBACK_HOURS * 60 }
+    val back = missed.minOfOrNull { it.startMin / 60 }?.coerceAtLeast(nowHour - GRAPH_LOOKBACK_HOURS)
+    val first = min(nowHour - 1, back ?: Int.MAX_VALUE).coerceIn(0, 23)
+    val lastEnd = events.filter { it.endMin > first * 60 }.maxOfOrNull { ceil(it.endMin / 60.0).toInt() } ?: 0
+    return GraphRange(first, min(GRAPH_MAX_HOUR, maxOf(22, first + GRAPH_MIN_SPAN_HOURS, lastEnd)))
 }
 
 /** An appointment chip waiting for a place: its width is measured by the view. */

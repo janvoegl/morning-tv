@@ -53,7 +53,8 @@ class ScreenTextTest {
     fun greetingFollowsTheHour() {
         val de = io.github.morningtv.text.Texts.DE
         assertEquals("Hallo, Jan", greeting("Jan", de, 3))
-        assertEquals("Guten Morgen, Jan", greeting("Jan", de, 5))
+        assertEquals("Guten Morgen, Jan", greeting("Jan", de, 4))
+        assertEquals("Guten Morgen", greeting("", de, 5))
         assertEquals("Guten Morgen", greeting("", de, 10))
         assertEquals("Guten Tag", greeting(" ", de, 11))
         assertEquals("Guten Tag, Jan", greeting("Jan", de, 17))

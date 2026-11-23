@@ -377,7 +377,7 @@ class MainActivity : Activity() {
         val range = graphRange(nowMin, events.map { io.github.morningtv.ui.TimelineEvent(it.startMin, it.endMin, 0) })
         findViewById<TimeGraphView>(R.id.graph).apply {
             onHidden = { n -> hiddenCount = n; updateStatus() }
-            set(GraphData(range, hours, events, nowMin, hm(nowMin)))
+            set(GraphData(range, hours, events, nowMin, hm(nowMin), now.plusDays(1).dayOfWeek.getDisplayName(TextStyle.SHORT, t.locale)))
         }
         statusIcon = when {
             agenda == null -> R.drawable.ic_bell

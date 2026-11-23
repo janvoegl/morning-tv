@@ -8,9 +8,9 @@ data class AgendaRow(val time: String, val title: String)
 
 const val MAX_TIMED_ROWS = 8
 
-/** Greeting for the hour of day: morning 05-10, afternoon 11-17, evening 18-21, otherwise a plain hello. */
+/** Greeting for the hour of day: morning 04-10, afternoon 11-17, evening 18-21, otherwise a plain hello. */
 fun greetingWord(hour: Int, t: Texts): String = when (hour) {
-    in 5..10 -> t.goodMorning
+    in 4..10 -> t.goodMorning
     in 11..17 -> t.goodAfternoon
     in 18..21 -> t.goodEvening
     else -> t.hello

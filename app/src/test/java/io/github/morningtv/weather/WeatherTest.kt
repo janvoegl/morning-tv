@@ -24,7 +24,7 @@ class WeatherTest {
         assertTrue(url.contains("current=temperature_2m,weather_code"))
         assertTrue(url.contains("hourly=temperature_2m,precipitation_probability,weather_code"))
         assertTrue(url.contains("daily=temperature_2m_max,temperature_2m_min"))
-        assertTrue(url.contains("forecast_days=1"))
+        assertTrue(url.contains("forecast_days=2"))
     }
 
     @Test
@@ -110,5 +110,37 @@ class WeatherTest {
         val all = parseForecast(fixture, nowHour = 7)!!.allHours
         assertEquals((0..23).toList(), all.map { it.hour })
         assertEquals(HourPoint(14, 6, 61), all[14])
+    }
+
+    @Test
+    fun twoDayReplyKeepsTodayForSummaryAndAddsTomorrowToAllHours() {
+        val root = kotlinx.serialization.json.Json.parseToJsonElement(fixture).let { it as kotlinx.serialization.json.JsonObject }
+        val h = root.getValue("hourly") as kotlinx.serialization.json.JsonObject
+        fun doubled(key: String, tomorrow: (kotlinx.serialization.json.JsonElement) -> kotlinx.serialization.json.JsonElement) =
+            kotlinx.serialization.json.JsonArray(
+                (h.getValue(key) as kotlinx.serialization.json.JsonArray).let { a -> a + a.map(tomorrow) },
+            )
+        val time = kotlinx.serialization.json.JsonArray(
+            (h.getValue("time") as kotlinx.serialization.json.JsonArray).let { a ->
+                a + a.map { kotlinx.serialization.json.JsonPrimitive(it.toString().trim('"').replaceBefore('T', "2099-01-02")) }
+            },
+        )
+        // Tomorrow: every hour 90 % rain and 20 degrees, so any leak into today's numbers would show.
+        val two = kotlinx.serialization.json.JsonObject(
+            root + ("hourly" to kotlinx.serialization.json.JsonObject(
+                h + mapOf(
+                    "time" to time,
+                    "temperature_2m" to doubled("temperature_2m") { kotlinx.serialization.json.JsonPrimitive(20.0) },
+                    "precipitation_probability" to doubled("precipitation_probability") { kotlinx.serialization.json.JsonPrimitive(90) },
+                    "weather_code" to doubled("weather_code") { it },
+                ),
+            )),
+        ).toString()
+        val w = parseForecast(two, nowHour = 16)!!
+        assertNull(w.rainFromHour)
+        assertEquals(20, w.rainChance)
+        assertEquals((0..47).toList(), w.allHours.map { it.hour })
+        assertEquals(20, w.allHours[24 + 5].tempC)
+        assertEquals(listOf(16, 18, 20, 22), w.hours.map { it.hour })
     }
 }
