@@ -34,6 +34,7 @@ import io.github.morningtv.standby.countdownLabel
 import io.github.morningtv.text.Texts
 import io.github.morningtv.transport.POST_BODY_EXTRA
 import io.github.morningtv.transport.extractPayload
+import io.github.morningtv.transport.keepsTvOn
 import io.github.morningtv.ui.DatedAgenda
 import io.github.morningtv.ui.agendaForToday
 import io.github.morningtv.ui.AgendaView
@@ -69,7 +70,7 @@ import java.util.Locale
 
 /**
  * The morning screen. Started by the iPhone Shortcut (events in the PostBody extra → standby
- * timer armed) or by hand from the launcher (no timer). Leaving the app cancels the timer.
+ * timer armed, unless the payload says keepOn) or by hand from the launcher (no timer). Leaving the app cancels the timer.
  */
 class MainActivity : Activity() {
     private val handler = Handler(Looper.getMainLooper())
@@ -193,8 +194,13 @@ class MainActivity : Activity() {
         cachedStamp = null
         stateStore().edit().putString(CACHE_KEY, encodeCache(today, ZonedDateTime.now(config.timezone).format(HHMM), parsed)).apply()
         standbyRequested = false
-        timer.arm(config.standbyMinutes)
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        if (keepsTvOn(payload)) {
+            // The TV was already on (someone may be watching): show the screen, but never switch the TV off.
+            timer.cancel()
+        } else {
+            timer.arm(config.standbyMinutes)
+            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
         statusOverride = null
         text(R.id.status).text = ""
         return true

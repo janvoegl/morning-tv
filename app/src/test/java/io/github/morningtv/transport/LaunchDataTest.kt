@@ -21,4 +21,15 @@ class LaunchDataTest {
         assertNull(extractPayload(ByteArray(0)))
         assertNull(extractPayload("   ".toByteArray()))
     }
+
+    @Test
+    fun keepOnFlagIsReadFromBooleanOrText() {
+        assertEquals(true, keepsTvOn("""{"events":[],"keepOn":true}"""))
+        assertEquals(true, keepsTvOn("""{"events":[],"keepOn":"true"}"""))
+        assertEquals(true, keepsTvOn("""{"events":[],"keepOn":"Yes"}"""))
+        assertEquals(false, keepsTvOn("""{"events":[],"keepOn":false}"""))
+        assertEquals(false, keepsTvOn("""{"events":[],"keepOn":"false"}"""))
+        assertEquals(false, keepsTvOn("""{"events":[]}"""))
+        assertEquals(false, keepsTvOn("{oops"))
+    }
 }

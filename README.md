@@ -9,7 +9,7 @@ Unofficial hobby project, not affiliated with or endorsed by Sony.
 
 - **No server, no account, no cloud of our own.** The iPhone talks to the TV directly on your home network.
 - **Only at home:** the iPhone Shortcut checks your Wi-Fi first. Away from home, nothing happens.
-- **Never takes over a TV in use:** if the TV is already on, the Shortcut stops.
+- **Never switches off a TV in use:** if the TV is already on, the app opens over it and the TV stays on.
 - **Your calendar stays on your phone:** the Shortcut sends only today's events (title, start, end) when the alarm rings. No Apple password on the TV.
 - **Optional Google Calendar:** set `google_ical_url` (see below) and the TV also reads today's events from Google's read-only secret iCal address. Both sources are merged. Today's agenda is cached, so opening the app by hand still shows it.
 - **No open port:** the events travel inside Sony's app-launch command.
@@ -85,9 +85,9 @@ With a Davis WeatherLink Live on your network, set `weatherlink_host=<its addres
 
 ## How it works
 
-1. Alarm → Shortcut: home Wi-Fi? TV off? → `setPowerStatus true` → wait → `setActiveApp` with today's events as `data`.
+1. Alarm → Shortcut: home Wi-Fi? TV already on? (if off: `setPowerStatus true` → wait) → `setActiveApp` with today's events and `keepOn` as `data`.
 2. The TV starts the app with the events in a byte-array extra `PostBody` ([findings](docs/tv-findings.md)).
-3. The app shows weather + appointments and arms the standby timer. Opened by hand from the launcher, it never arms the timer.
+3. The app shows weather + appointments and arms the standby timer (not if the TV was already on: `keepOn`). Opened by hand from the launcher, it never arms the timer.
 4. When the timer runs out, the app calls `setPowerStatus false` on the TV's own API (`127.0.0.1`).
 
 ## Development

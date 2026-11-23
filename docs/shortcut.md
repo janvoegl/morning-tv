@@ -37,13 +37,15 @@ Create a new Shortcut named **Morning TV** with these actions.
 
 3. Get Contents of URL (`/sony/system`), JSON body:
    `method` (Text) = `getPowerStatus`, `id` (Number) = `1`, `version` (Text) = `1.0`, `params` (Array) = empty.
-4. **If** *Contents of URL* **contains** `active` → **Stop This Shortcut**. **End If**.
+4. **If** *Contents of URL* **contains** `active`: **Text** `true` → **Set Variable** *TVOn*. **Otherwise**: **Text** `false` → **Set Variable** *TVOn*. **End If**.
 
-**Wake the TV**
+**Wake the TV (only if it was off)**
 
-5. Get Contents of URL (`/sony/system`), JSON body:
-   `method` = `setPowerStatus`, `id` = `1`, `version` = `1.0`, `params` (Array) → one **Dictionary** item with `status` (Boolean) = **true**.
-6. **Wait** 8 seconds. (The TV reports "on" after about 4 s; the extra time lets its home screen settle.)
+5. **If** *TVOn* **is** `false`:
+   - Get Contents of URL (`/sony/system`), JSON body:
+     `method` = `setPowerStatus`, `id` = `1`, `version` = `1.0`, `params` (Array) → one **Dictionary** item with `status` (Boolean) = **true**.
+   - **Wait** 8 seconds. (The TV reports "on" after about 4 s; the extra time lets its home screen settle.)
+   - **End If**.
 
 **Collect today's appointments**
 
@@ -55,7 +57,8 @@ Create a new Shortcut named **Morning TV** with these actions.
    - **Add to Variable** `Events`.
    - **End Repeat**.
 9. **Combine Text** *Events* with **Custom** separator `,`.
-10. **Text**: `{"events":[` *Combined Text* `]}` → rename to *Payload*.
+10. **Text**: `{"events":[` *Combined Text* `],"keepOn":` *TVOn* `}` → rename to *Payload*.
+    (*TVOn* is the text `true` or `false`, so this is valid JSON. With `"keepOn":true` the app opens over the running TV and never switches it off.)
 
 **Start Morning TV**
 
@@ -65,11 +68,11 @@ Create a new Shortcut named **Morning TV** with these actions.
 
 **Safety net: don't leave the TV on**
 
-12. **If** *Contents of URL* (from step 11) **does not contain** `result` → Get Contents of URL (`/sony/system`), JSON body:
-    `method` = `setPowerStatus`, `id` = `1`, `version` = `1.0`, `params` (Array) → one **Dictionary** with `status` (Boolean) = **false**. **End If**.
-    (If the app could not be started, e.g. because the payload was too large or the key was wrong, the TV would otherwise stay on all day.)
+12. **If** *TVOn* **is** `false`: **If** *Contents of URL* (from step 11) **does not contain** `result` → Get Contents of URL (`/sony/system`), JSON body:
+    `method` = `setPowerStatus`, `id` = `1`, `version` = `1.0`, `params` (Array) → one **Dictionary** with `status` (Boolean) = **false**. **End If**. **End If**.
+    (If the app could not be started, e.g. because the payload was too large or the key was wrong, the TV would otherwise stay on all day. A TV that was already on is never switched off.)
 
-**Test it by hand first:** switch the TV to standby, then run the Shortcut from the Shortcuts app. The TV should wake and show the screen.
+**Test it by hand first**, twice: with the TV in standby (it should wake and show the screen, and switch off after `standby_minutes`) and with the TV on (the screen opens over what is running and the TV stays on).
 
 ## 2. The automation that runs it
 
@@ -102,14 +105,14 @@ You need an automation app that can react to an alarm and send HTTP requests. Ex
 
 1. POST `http://<TV_IP>/sony/system`, header `X-Auth-PSK: <PSK>`, body
    `{"method":"getPowerStatus","id":1,"params":[],"version":"1.0"}`.
-   If the reply contains `active`, stop: the TV is already on.
+   If the reply contains `active`, set `KEEPON` = `true` and skip actions 2 and 3; otherwise `KEEPON` = `false`.
 2. POST `http://<TV_IP>/sony/system`, same header, body
    `{"method":"setPowerStatus","id":1,"params":[{"status":true}],"version":"1.0"}`.
 3. Wait 8 seconds.
 4. POST `http://<TV_IP>/sony/appControl`, same header, body
-   `{"method":"setActiveApp","id":1,"params":[{"uri":"com.sony.dtv.io.github.morningtv.io.github.morningtv.MainActivity","data":"{\"events\":[]}"}],"version":"1.0"}`
-   The `data` must not be empty: any non-empty value makes the app arm the standby timer. `{"events":[]}` means "no events from the phone", and the app then shows the Google calendar.
-5. Safety net: if the reply of action 4 does not contain `result`, POST to `/sony/system` with
+   `{"method":"setActiveApp","id":1,"params":[{"uri":"com.sony.dtv.io.github.morningtv.io.github.morningtv.MainActivity","data":"{\"events\":[],\"keepOn\":KEEPON}"}],"version":"1.0"}`
+   (replace `KEEPON` by `true` or `false`). The `data` must not be empty: any non-empty value makes the app treat this as a phone start. `{"events":[]}` means "no events from the phone", and the app then shows the Google calendar. `"keepOn":true` (TV was already on) opens the app without arming the standby timer.
+5. Safety net, only if `KEEPON` is `false`: if the reply of action 4 does not contain `result`, POST to `/sony/system` with
    `{"method":"setPowerStatus","id":1,"params":[{"status":false}],"version":"1.0"}`.
 
 Without a Google calendar address the app shows "no appointments" but still works as a weather and clock screen with the standby timer.
@@ -120,12 +123,13 @@ Without a Google calendar address the app shows "no appointments" but still work
 
 - **Size limit (iPhone):** keep the payload under about **5 KB** (5.7 KB worked, 8.6 KB was dropped on the test TV). 15 events with normal titles stay well below that; step 12 switches the TV off again if it is exceeded.
 - Events that started yesterday (e.g. a night shift) are not found by "Start Date is today".
-- Not at home or TV already on: the automation stops quietly.
+- Not at home: the automation stops quietly. TV already on: the app opens over it and the TV stays on (`keepOn`).
 - If the appointments are missing but the app opens, check step 10: the text must be valid JSON. Opening the Shortcut by hand and adding **Quick Look** on *Payload* shows what is sent.
 - The TV goes back to standby after `standby_minutes`. Pressing Home on the remote cancels that. Opening the app by hand never starts the timer.
 
 ## Troubleshooting
 
-- **Nothing happens at all:** the Shortcut stops quietly if the TV is already on (step 4) or you are not on `<HOME_WIFI>` (step 2). Test with the TV in standby and the phone on the home Wi-Fi.
+- **Nothing happens at all:** the Shortcut stops quietly if you are not on `<HOME_WIFI>` (step 2). Test with the phone on the home Wi-Fi.
+- **Works with the TV off but not when it is on:** your Shortcut still has the old step 4 ("contains `active` → Stop This Shortcut"). Replace it with the *TVOn* version above.
 - **The TV wakes but the app does not open, and the TV switches off again:** the launch call (step 11) was refused or the payload was too large; step 12 switches the TV off. Check that `<PSK>` is right (a wrong key gives `403 Forbidden` with an `auth_url` in the reply, also for `setActiveApp`) and the payload size.
 - **Try the calls from a computer:** `scripts/tv.sh status` and `scripts/tv.sh launch <uri> <data>` use the same requests (key via `MTV_TV_PSK`).
