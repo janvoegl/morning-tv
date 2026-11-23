@@ -2,8 +2,9 @@
     <style name="SectionTitle">
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
-        <item name="android:textColor">#FFF2B33D</item>
-        <item name="android:textSize">18sp</item>
-        <item name="android:letterSpacing">0.08</item>
+        <item name="android:textColor">#CCFFFFFF</item>
+        <item name="android:textSize">17sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0.06</item>
     </style>
 </resources>
