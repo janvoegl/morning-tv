@@ -1,5 +1,7 @@
 package io.github.morningtv.standby
 
+import io.github.morningtv.text.Texts
+
 /** Tracks when the TV should go to standby. Pure logic; [now] returns epoch millis. */
 class StandbyTimer(private val now: () -> Long) {
     private var dueAt: Long? = null
@@ -20,8 +22,8 @@ class StandbyTimer(private val now: () -> Long) {
 }
 
 /** "TV off in 29 min" (minutes rounded up), or "TV off in <1 min". */
-fun countdownLabel(remainingMs: Long): String {
-    if (remainingMs < 60_000L) return "TV off in <1 min"
+fun countdownLabel(remainingMs: Long, t: Texts = Texts.EN): String {
+    if (remainingMs < 60_000L) return t.tvOffSoon
     val minutes = (remainingMs + 59_999L) / 60_000L
-    return "TV off in $minutes min"
+    return t.tvOffInMinutes(minutes.toInt())
 }

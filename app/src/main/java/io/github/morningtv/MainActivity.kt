@@ -17,6 +17,7 @@ import io.github.morningtv.config.ConfigStore
 import io.github.morningtv.sony.SonyApi
 import io.github.morningtv.standby.StandbyTimer
 import io.github.morningtv.standby.countdownLabel
+import io.github.morningtv.text.Texts
 import io.github.morningtv.transport.POST_BODY_EXTRA
 import io.github.morningtv.transport.extractPayload
 import io.github.morningtv.ui.DatedAgenda
@@ -45,6 +46,8 @@ class MainActivity : Activity() {
     private lateinit var config: AppConfig
     private var agenda: DatedAgenda? = null
     private var standbyRequested = false
+    /** Follows the TV's system language (German or English). */
+    private val t: Texts get() = Texts.forLocale(resources.configuration.locales[0])
 
     private val tick = object : Runnable {
         override fun run() {
@@ -74,7 +77,7 @@ class MainActivity : Activity() {
     override fun onStart() {
         super.onStart()
         config = loadConfig()
-        text(R.id.greeting).text = greeting(config.greetingName)
+        text(R.id.greeting).text = greeting(config.greetingName, t)
         renderAgenda()
         loadWeather()
         handler.post(tick)
@@ -94,7 +97,7 @@ class MainActivity : Activity() {
     private fun handleLaunch(intent: Intent): Boolean {
         val payload = extractPayload(intent.getByteArrayExtra(POST_BODY_EXTRA)) ?: return false
         val today = LocalDate.now(config.timezone)
-        agenda = DatedAgenda(today, parseAgenda(payload, today, config.timezone) ?: Agenda(emptyList(), emptyList()))
+        agenda = DatedAgenda(today, parseAgenda(payload, today, config.timezone, t) ?: Agenda(emptyList(), emptyList()))
         standbyRequested = false
         timer.arm(config.standbyMinutes)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -108,28 +111,28 @@ class MainActivity : Activity() {
     private fun loadWeather() {
         val cfg = config
         if (cfg.latitude.isNaN() || cfg.longitude.isNaN()) {
-            showWeather(null, "Weather location not set")
+            showWeather(null, t.weatherNotSet)
             return
         }
         text(R.id.weatherNow).text = "…"
         Thread {
             val w = WeatherClient().load(cfg, LocalTime.now(cfg.timezone).hour)
-            runOnUiThread { if (!isDestroyed) showWeather(w, "Weather unavailable") }
+            runOnUiThread { if (!isDestroyed) showWeather(w, t.weatherUnavailable) }
         }.start()
     }
 
     private fun showWeather(w: WeatherSummary?, fallback: String) {
         val place = config.locationName.trim()
         text(R.id.weatherTitle).text =
-            if (place.isEmpty()) "TODAY'S WEATHER" else "TODAY'S WEATHER · ${place.uppercase(Locale.ROOT)}"
+            if (place.isEmpty()) t.weatherTitle else "${t.weatherTitle} · ${place.uppercase(Locale.ROOT)}"
         if (w == null) {
             text(R.id.weatherNow).text = fallback
             text(R.id.weatherDetail).text = ""
             text(R.id.weatherHours).text = ""
             return
         }
-        text(R.id.weatherNow).text = "${weatherIcon(w.nowCode)}  ${w.nowTempC}°  ${weatherLabel(w.nowCode)}"
-        text(R.id.weatherDetail).text = "High ${w.highC}° / Low ${w.lowC}°\n${rainLine(w)}"
+        text(R.id.weatherNow).text = "${weatherIcon(w.nowCode)}  ${w.nowTempC}°  ${weatherLabel(w.nowCode, t)}"
+        text(R.id.weatherDetail).text = "${t.highLow(w.highC, w.lowC)}\n${rainLine(w, t)}"
         fun row(cell: (Int) -> String) = w.hours.indices.joinToString("  ") { "%-4s".format(cell(it)) }
         text(R.id.weatherHours).text = listOf(
             row { "%02d".format(w.hours[it].hour) },
@@ -142,7 +145,7 @@ class MainActivity : Activity() {
         val box = findViewById<LinearLayout>(R.id.agenda)
         val density = resources.displayMetrics.density
         box.removeAllViews()
-        for (row in agendaRows(agendaForToday(agenda, LocalDate.now(config.timezone)))) {
+        for (row in agendaRows(agendaForToday(agenda, LocalDate.now(config.timezone)), t)) {
             val line = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
             if (row.time.isNotEmpty()) line.addView(TextView(this).apply {
                 text = row.time
@@ -164,11 +167,11 @@ class MainActivity : Activity() {
     }
 
     private fun renderClock() {
-        text(R.id.clock).text = ZonedDateTime.now(config.timezone).format(CLOCK)
+        text(R.id.clock).text = ZonedDateTime.now(config.timezone).format(DateTimeFormatter.ofPattern(t.clockPattern, t.locale))
     }
 
     private fun renderCountdown() {
-        text(R.id.countdown).text = timer.remainingMs()?.let { countdownLabel(it) } ?: ""
+        text(R.id.countdown).text = timer.remainingMs()?.let { countdownLabel(it, t) } ?: ""
     }
 
     private fun goToStandby() {
@@ -182,7 +185,7 @@ class MainActivity : Activity() {
                 renderCountdown()
                 // Never hold the screen on after the timer ran out, even if standby failed.
                 window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-                if (result.isFailure) text(R.id.status).text = "Could not switch the TV off"
+                if (result.isFailure) text(R.id.status).text = t.standbyFailed
             }
         }.start()
     }
@@ -191,6 +194,5 @@ class MainActivity : Activity() {
 
     private companion object {
         const val TICK_MS = 30_000L
-        val CLOCK: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE, d MMM  HH:mm", Locale.ENGLISH)
     }
 }

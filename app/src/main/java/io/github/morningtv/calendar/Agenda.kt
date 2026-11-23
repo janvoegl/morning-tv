@@ -1,5 +1,6 @@
 package io.github.morningtv.calendar
 
+import io.github.morningtv.text.Texts
 import java.time.LocalDate
 import java.time.OffsetDateTime
 import java.time.ZoneId
@@ -35,7 +36,7 @@ private val HHMM = DateTimeFormatter.ofPattern("HH:mm")
  * Parses the payload the iPhone Shortcut sends. Returns null for malformed JSON.
  * Events that don't touch [today] in [zone] are dropped; events with unreadable dates are skipped.
  */
-fun parseAgenda(text: String, today: LocalDate, zone: ZoneId): Agenda? {
+fun parseAgenda(text: String, today: LocalDate, zone: ZoneId, t: Texts = Texts.EN): Agenda? {
     val payload = runCatching { json.decodeFromString<Payload>(text) }.getOrNull() ?: return null
     val dayStart = today.atStartOfDay(zone)
     val dayEnd = today.plusDays(1).atStartOfDay(zone)
@@ -51,7 +52,7 @@ fun parseAgenda(text: String, today: LocalDate, zone: ZoneId): Agenda? {
         if (e.isAllDay) {
             allDay += AgendaItem(title, "", true)
         } else {
-            val label = if (start < dayStart) "until ${end.format(HHMM)}" else start.format(HHMM)
+            val label = if (start < dayStart) t.until(end.format(HHMM)) else start.format(HHMM)
             timed += start to AgendaItem(title, label, false)
         }
     }

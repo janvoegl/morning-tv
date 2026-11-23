@@ -1,5 +1,6 @@
 package io.github.morningtv.weather
 
+import io.github.morningtv.text.Texts
 import java.net.URLEncoder
 import java.time.ZoneId
 import kotlin.math.roundToInt
@@ -67,17 +68,17 @@ fun parseForecast(json: String, nowHour: Int): WeatherSummary? = runCatching {
 
 private fun JsonObject.arr(key: String): JsonArray = getValue(key).jsonArray
 
-/** Short English label for a WMO weather code. */
-fun weatherLabel(code: Int): String = when (code) {
-    0 -> "Clear"
-    1, 2 -> "Partly cloudy"
-    45, 48 -> "Fog"
-    in 51..57 -> "Drizzle"
-    in 61..67 -> "Rain"
-    in 71..77, 85, 86 -> "Snow"
-    in 80..82 -> "Showers"
-    in 95..99 -> "Thunderstorm"
-    else -> "Cloudy"
+/** Short label for a WMO weather code. */
+fun weatherLabel(code: Int, t: Texts = Texts.EN): String = when (code) {
+    0 -> t.clear
+    1, 2 -> t.partlyCloudy
+    45, 48 -> t.fog
+    in 51..57 -> t.drizzle
+    in 61..67 -> t.rainLabel
+    in 71..77, 85, 86 -> t.snow
+    in 80..82 -> t.showers
+    in 95..99 -> t.thunderstorm
+    else -> t.cloudy
 }
 
 /** Emoji for a WMO weather code. */

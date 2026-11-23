@@ -1,0 +1,4 @@
+<resources>
+    <string name="weather_title">WETTER HEUTE</string>
+    <string name="agenda_title">TERMINE HEUTE</string>
+</resources>
