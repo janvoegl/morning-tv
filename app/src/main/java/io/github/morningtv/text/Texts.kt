@@ -7,6 +7,10 @@ import java.util.Locale
 data class Texts(
     val locale: Locale,
     val goodMorning: String,
+    val goodAfternoon: String,
+    val goodEvening: String,
+    /** Greeting at night (22:00-04:59). */
+    val hello: String,
     val sentWithAlarm: String,
     val noAppointments: String,
     val allDay: String,
@@ -43,6 +47,9 @@ data class Texts(
         val EN = Texts(
             locale = Locale.ENGLISH,
             goodMorning = "Good morning",
+            goodAfternoon = "Good afternoon",
+            goodEvening = "Good evening",
+            hello = "Hello",
             sentWithAlarm = "Appointments arrive with your alarm",
             noAppointments = "No appointments today",
             allDay = "all day",
@@ -75,6 +82,9 @@ data class Texts(
         val DE = Texts(
             locale = Locale.GERMAN,
             goodMorning = "Guten Morgen",
+            goodAfternoon = "Guten Tag",
+            goodEvening = "Guten Abend",
+            hello = "Hallo",
             sentWithAlarm = "Termine kommen mit dem Wecker",
             noAppointments = "Heute keine Termine",
             allDay = "ganztägig",

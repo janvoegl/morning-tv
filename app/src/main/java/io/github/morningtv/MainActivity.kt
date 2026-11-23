@@ -137,7 +137,7 @@ class MainActivity : Activity() {
     /** Re-reads the config and redraws everything (also after a change in the settings menu). */
     private fun applyConfig() {
         config = loadConfig()
-        text(R.id.greeting).text = greeting(config.greetingName, t)
+        renderGreeting()
         if (!config.googleEnabled || config.googleIcalUrl.isEmpty()) googleAgenda = null
         renderAgenda()
         renderClock()
@@ -271,7 +271,7 @@ class MainActivity : Activity() {
         }
         text(R.id.weatherNow).text = "${weatherIcon(w.nowCode, w.isDayAt(LocalTime.now(config.timezone).hour))} ${temp(w.nowTempC)}"
         text(R.id.weatherLabel).text = weatherLabel(w.nowCode, t)
-        val detail = "${t.highLow(w.highC, w.lowC)}\n${rainLine(w, t)}"
+        val detail = "${t.highLow(w.highC, w.lowC).replace("-", "−")}\n${rainLine(w, t)}"
         text(R.id.weatherDetail).text = detail
         text(R.id.weatherDetailWide).text = detail
         val d = resources.displayMetrics.density
@@ -350,7 +350,7 @@ class MainActivity : Activity() {
         } else {
             text(R.id.gNow).text = "${weatherIcon(w.nowCode, w.isDayAt(now.hour))} ${temp(w.nowTempC)}"
             text(R.id.gLabel).text = weatherLabel(w.nowCode, t)
-            text(R.id.gDetail).text = "${t.highLow(w.highC, w.lowC)} · ${rainLine(w, t)}" + if (place.isEmpty()) "" else "\n$place"
+            text(R.id.gDetail).text = "${t.highLow(w.highC, w.lowC).replace("-", "−")} · ${rainLine(w, t)}" + if (place.isEmpty()) "" else "\n$place"
         }
         val d = resources.displayMetrics.density
         val chips = findViewById<LinearLayout>(R.id.gChips)
@@ -464,7 +464,12 @@ class MainActivity : Activity() {
     /** "-1°" with a proper minus sign. */
     private fun temp(c: Int) = "$c°".replace("-", "−")
 
+    private fun renderGreeting() {
+        text(R.id.greeting).text = greeting(config.greetingName, t, ZonedDateTime.now(config.timezone).hour)
+    }
+
     private fun renderClock() {
+        renderGreeting()
         text(R.id.clock).text = ZonedDateTime.now(config.timezone).format(DateTimeFormatter.ofPattern(t.clockPattern, t.locale))
     }
 
