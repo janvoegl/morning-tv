@@ -74,4 +74,19 @@ class AppConfigTest {
         assertEquals("", AppConfig.fromMap(emptyMap()).googleIcalUrl)
         assertEquals("https://x/y.ics", AppConfig.fromMap(mapOf("google_ical_url" to " https://x/y.ics ")).googleIcalUrl)
     }
+
+    @Test
+    fun newSwitchesDefaultOnAndParse() {
+        val d = AppConfig.fromMap(emptyMap())
+        assertEquals(true, d.googleEnabled)
+        assertEquals(true, d.weatherLinkEnabled)
+        assertEquals("", d.weatherLinkHost)
+        assertEquals(LanguageSetting.AUTO, d.language)
+        val c = AppConfig.fromMap(mapOf("google_enabled" to "false", "weatherlink_enabled" to "False", "weatherlink_host" to " 10.0.0.9 ", "language" to "DE"))
+        assertEquals(false, c.googleEnabled)
+        assertEquals(false, c.weatherLinkEnabled)
+        assertEquals("10.0.0.9", c.weatherLinkHost)
+        assertEquals(LanguageSetting.DE, c.language)
+        assertEquals(LanguageSetting.EN, AppConfig.fromMap(mapOf("language" to "en")).language)
+    }
 }

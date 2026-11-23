@@ -14,6 +14,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+import io.github.morningtv.config.LanguageSetting
 import java.util.Locale
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
@@ -26,6 +27,13 @@ class TextsTest {
     fun picksGermanForAnyGermanLocale() {
         assertSame(Texts.DE, Texts.forLocale(Locale.forLanguageTag("de-DE")))
         assertSame(Texts.DE, Texts.forLocale(Locale.forLanguageTag("de-AT")))
+    }
+
+    @Test
+    fun forcedLanguageOverridesSystem() {
+        assertSame(Texts.DE, Texts.forSetting(LanguageSetting.DE, Locale.ENGLISH))
+        assertSame(Texts.EN, Texts.forSetting(LanguageSetting.EN, Locale.GERMAN))
+        assertSame(Texts.DE, Texts.forSetting(LanguageSetting.AUTO, Locale.GERMAN))
     }
 
     @Test

@@ -1,5 +1,6 @@
 package io.github.morningtv.text
 
+import io.github.morningtv.config.LanguageSetting
 import java.util.Locale
 
 /** Every text the morning screen shows. [forLocale] picks German or English (the fallback). */
@@ -104,5 +105,12 @@ data class Texts(
         )
 
         fun forLocale(locale: Locale): Texts = if (locale.language == "de") DE else EN
+
+        /** Texts for the configured language; [LanguageSetting.AUTO] follows [system]. */
+        fun forSetting(setting: LanguageSetting, system: Locale): Texts = when (setting) {
+            LanguageSetting.DE -> DE
+            LanguageSetting.EN -> EN
+            LanguageSetting.AUTO -> forLocale(system)
+        }
     }
 }

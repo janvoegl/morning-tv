@@ -56,4 +56,14 @@ class StandbyTimerTest {
         assertEquals("TV off in <1 min", countdownLabel(59_000))
         assertEquals("TV off in <1 min", countdownLabel(0))
     }
+
+    @Test
+    fun armForMsResumesWithGivenRemainingTime() {
+        var now = 1_000L
+        val t = StandbyTimer { now }
+        t.armForMs(90_000L)
+        assertEquals(90_000L, t.remainingMs())
+        now += 30_000L
+        assertEquals(60_000L, t.remainingMs())
+    }
 }

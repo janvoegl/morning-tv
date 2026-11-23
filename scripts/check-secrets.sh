@@ -6,7 +6,7 @@ set -uo pipefail
 ROOT="$(git rev-parse --show-toplevel)"; cd "$ROOT"
 LOCAL="config/local.properties"
 # Keys whose values are not personal (they also appear in the example file)
-PUBLIC_KEYS=" timezone standby_minutes calendar_style layout "
+PUBLIC_KEYS=" timezone standby_minutes calendar_style layout language google_enabled weatherlink_enabled "
 fail=0
 if git ls-files --error-unmatch "$LOCAL" >/dev/null 2>&1 || git diff --cached --name-only | grep -qx "$LOCAL"; then
   echo "check-secrets: $LOCAL is tracked or staged — remove it from git" >&2; fail=1

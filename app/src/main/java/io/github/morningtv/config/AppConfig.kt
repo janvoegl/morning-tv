@@ -6,6 +6,9 @@ import java.time.ZoneId
 /** How two or more appointments are shown: day timeline (default) or plain list. */
 enum class CalendarStyle { TIMELINE, LIST }
 
+/** Language of the screen texts: follow the TV's system language, or force German / English. */
+enum class LanguageSetting { AUTO, DE, EN }
+
 /** Screen layout: weather and appointments on one time graph (default) or separate cards. */
 enum class ScreenLayout { TIMELINE, CLASSIC }
 
@@ -22,6 +25,12 @@ data class AppConfig(
     val layout: ScreenLayout = ScreenLayout.TIMELINE,
     /** Secret iCal address of the Google calendar; empty = off. Never logged or shown. */
     val googleIcalUrl: String = "",
+    /** Switch for the Google calendar; only has an effect if [googleIcalUrl] is set. */
+    val googleEnabled: Boolean = true,
+    /** Address (host or host:port) of a Davis WeatherLink Live on the LAN; empty = none. */
+    val weatherLinkHost: String = "",
+    val weatherLinkEnabled: Boolean = true,
+    val language: LanguageSetting = LanguageSetting.AUTO,
 ) {
     companion object {
         const val DEFAULT_STANDBY_MINUTES = 30
@@ -30,6 +39,7 @@ data class AppConfig(
         val KEYS = listOf(
             "tv_psk", "greeting_name", "latitude", "longitude",
             "location_name", "timezone", "standby_minutes", "calendar_style", "layout", "google_ical_url",
+            "google_enabled", "weatherlink_host", "weatherlink_enabled", "language",
         )
 
         fun fromMap(values: Map<String, String>): AppConfig {
@@ -46,6 +56,14 @@ data class AppConfig(
                 timezone = zone,
                 standbyMinutes = minutes,
                 googleIcalUrl = str("google_ical_url"),
+                googleEnabled = !str("google_enabled").equals("false", ignoreCase = true),
+                weatherLinkHost = str("weatherlink_host"),
+                weatherLinkEnabled = !str("weatherlink_enabled").equals("false", ignoreCase = true),
+                language = when (str("language").lowercase()) {
+                    "de" -> LanguageSetting.DE
+                    "en" -> LanguageSetting.EN
+                    else -> LanguageSetting.AUTO
+                },
                 layout = if (str("layout").equals("classic", ignoreCase = true)) ScreenLayout.CLASSIC else ScreenLayout.TIMELINE,
                 calendarStyle = if (str("calendar_style").equals("list", ignoreCase = true)) CalendarStyle.LIST else CalendarStyle.TIMELINE,
             )

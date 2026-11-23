@@ -55,14 +55,24 @@ Google Calendar → Settings → your calendar → **Secret address in iCal form
 
 ## Settings
 
-All settings are in `config/local.properties` (see `config/example.properties`):
+**On the TV:** press **OK** (or MENU) on the remote while the screen is showing. Up/Down select a row, Left/Right or OK change it, Back closes. The standby countdown pauses while the menu is open. The menu covers the greeting name, the place (search by name), standby minutes, language, layout, calendar style and the Google / weather-station switches.
+
+**In the config file** (`config/local.properties`, see `config/example.properties`), for everything incl. the secret values the menu does not show:
 
 | Key | Meaning |
 |---|---|
 | `layout` | `timeline` (default) or `classic` |
 | `calendar_style` | classic layout only: `timeline` (default) or `list` for 2+ appointments |
-| `google_ical_url` | optional, see above |
+| `language` | `auto` (follow the TV, default), `de` or `en` |
+| `google_ical_url`, `google_enabled` | optional Google calendar, see above |
+| `weatherlink_host`, `weatherlink_enabled` | optional local weather station, see below |
 | `standby_minutes`, `greeting_name`, `latitude`, `longitude`, `location_name`, `timezone` | as in the example file |
+
+Values changed in the menu are stored on the TV and survive restarts. Running `scripts/install.sh` again overwrites them with the config file.
+
+## Local weather station (optional)
+
+With a Davis WeatherLink Live on your network, set `weatherlink_host=<its address>` (a fixed IP is best). The app then shows the station's outdoor temperature as the *current* temperature. Everything else (forecast, icons, background) still comes from Open-Meteo, which is also the fallback when the station does not answer or you have no station.
 
 ## Privacy and security
 
@@ -70,7 +80,7 @@ All settings are in `config/local.properties` (see `config/example.properties`):
 - Town-level coordinates are enough for the weather; no street address is needed.
 - Secrets can come from the environment instead of the file: `MTV_TV_PSK=... scripts/install.sh`.
 - The TV key (PSK) and the Google address are stored in the app's private storage on the TV in plain text, as is usual on Android. Only the adb shell can set them (`android.permission.DUMP`).
-- The app only allows unencrypted HTTP to the TV itself (`127.0.0.1`); everything else uses HTTPS.
+- The app only allows unencrypted HTTP to the TV itself (`127.0.0.1`); everything else uses HTTPS. The one exception is the optional weather station: the WeatherLink Live local API is plain HTTP without login, so it is read over a plain socket on your home network.
 - Old TVs get no security updates. Turn Network debugging off after installing.
 
 ## How it works

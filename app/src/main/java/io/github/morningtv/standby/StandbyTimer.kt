@@ -11,6 +11,11 @@ class StandbyTimer(private val now: () -> Long) {
         dueAt = now() + minutes * 60_000L
     }
 
+    /** Arms the timer to fire in [ms] (used to resume after the settings menu paused it). */
+    fun armForMs(ms: Long) {
+        dueAt = now() + ms
+    }
+
     fun cancel() {
         dueAt = null
     }

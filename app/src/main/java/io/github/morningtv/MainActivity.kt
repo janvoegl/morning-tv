@@ -8,6 +8,10 @@ import android.os.Handler
 import android.os.Looper
 import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
+import android.view.KeyEvent
+import android.widget.FrameLayout
+import io.github.morningtv.text.SettingsTexts
+import io.github.morningtv.ui.SettingsOverlay
 import android.view.View
 import android.widget.ImageView
 import android.view.WindowManager
@@ -48,6 +52,7 @@ import io.github.morningtv.ui.isFreshLaunch
 import io.github.morningtv.ui.greeting
 import io.github.morningtv.ui.rainLine
 import io.github.morningtv.weather.WeatherClient
+import io.github.morningtv.weather.WeatherLinkClient
 import io.github.morningtv.weather.httpGet
 import io.github.morningtv.weather.WeatherSummary
 import io.github.morningtv.weather.WeatherTheme
@@ -82,7 +87,9 @@ class MainActivity : Activity() {
     private var hiddenCount = 0
     private val timelineMode get() = config.layout == ScreenLayout.TIMELINE
     /** Follows the TV's system language (German or English). */
-    private val t: Texts get() = Texts.forLocale(resources.configuration.locales[0])
+    private val t: Texts get() = Texts.forSetting(config.language, resources.configuration.locales[0])
+    private var settings: SettingsOverlay? = null
+    private var pausedRemainingMs: Long? = null
 
     private val tick = object : Runnable {
         override fun run() {
@@ -98,6 +105,16 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         config = loadConfig()
+        settings = SettingsOverlay(
+            activity = this,
+            parent = findViewById<FrameLayout>(R.id.root),
+            store = ConfigStore(getSharedPreferences(ConfigStore.PREFS_NAME, Context.MODE_PRIVATE)),
+            config = { config },
+            texts = { SettingsTexts.forTexts(t) },
+            language = { t.locale.language },
+            onChanged = { applyConfig() },
+            onClose = { resumeTimer() },
+        )
         if (isFreshLaunch(intent.flags, restored = savedInstanceState != null)) handleLaunch(intent)
     }
 
@@ -113,16 +130,49 @@ class MainActivity : Activity() {
 
     override fun onStart() {
         super.onStart()
+        applyConfig()
+        handler.post(tick)
+    }
+
+    /** Re-reads the config and redraws everything (also after a change in the settings menu). */
+    private fun applyConfig() {
         config = loadConfig()
         text(R.id.greeting).text = greeting(config.greetingName, t)
+        if (!config.googleEnabled || config.googleIcalUrl.isEmpty()) googleAgenda = null
         renderAgenda()
+        renderClock()
+        renderCountdown()
         loadWeather()
         loadGoogle()
-        handler.post(tick)
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        val s = settings
+        if (s != null && !s.isShown && keyCode in OPEN_SETTINGS_KEYS) {
+            pausedRemainingMs = timer.remainingMs()
+            timer.cancel()
+            s.show()
+            return true
+        }
+        return super.onKeyDown(keyCode, event)
+    }
+
+    override fun onBackPressed() {
+        val s = settings
+        if (s != null && s.isShown) s.close() else super.onBackPressed()
+    }
+
+    /** Counts down again from where the settings menu paused the standby timer. */
+    private fun resumeTimer() {
+        pausedRemainingMs?.let { timer.armForMs(it) }
+        pausedRemainingMs = null
+        renderCountdown()
     }
 
     override fun onStop() {
         super.onStop()
+        pausedRemainingMs = null
+        if (settings?.isShown == true) settings?.close()
         handler.removeCallbacks(tick)
         timer.cancel()
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -155,7 +205,7 @@ class MainActivity : Activity() {
     /** Fetches today's events from the Google calendar (secret iCal address), if one is configured. */
     private fun loadGoogle() {
         val url = config.googleIcalUrl
-        if (url.isEmpty()) return
+        if (url.isEmpty() || !config.googleEnabled) return
         val zone = config.timezone
         val texts = t
         Thread {
@@ -188,7 +238,11 @@ class MainActivity : Activity() {
         }
         text(R.id.weatherNow).text = "…"
         Thread {
-            val w = WeatherClient().load(cfg, LocalTime.now(cfg.timezone).hour)
+            var w = WeatherClient().load(cfg, LocalTime.now(cfg.timezone).hour)
+            // Optional local station: only the current temperature comes from it; Open-Meteo stays the fallback.
+            if (w != null && cfg.weatherLinkEnabled && cfg.weatherLinkHost.isNotEmpty()) {
+                WeatherLinkClient(cfg.weatherLinkHost).outdoorTempC()?.let { w = w!!.copy(nowTempC = it) }
+            }
             runOnUiThread {
                 if (isDestroyed) return@runOnUiThread
                 weather = w
@@ -412,7 +466,8 @@ class MainActivity : Activity() {
     }
 
     private fun renderCountdown() {
-        text(R.id.countdown).text = timer.remainingMs()?.let { countdownLabel(it, t) } ?: ""
+        text(R.id.countdown).text = timer.remainingMs()?.let { countdownLabel(it, t) }
+            ?: if (pausedRemainingMs != null) "" else SettingsTexts.forTexts(t).openHint
     }
 
     private fun goToStandby() {
@@ -435,6 +490,7 @@ class MainActivity : Activity() {
 
     private companion object {
         const val TICK_MS = 30_000L
+        val OPEN_SETTINGS_KEYS = setOf(KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_MENU, KeyEvent.KEYCODE_SETTINGS)
         const val STATE_PREFS = "morningtv_state"
         const val CACHE_KEY = "agenda_cache"
         val HHMM: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
