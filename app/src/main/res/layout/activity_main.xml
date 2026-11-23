@@ -20,9 +20,9 @@
             android:baselineAligned="true"
             android:orientation="horizontal">
             <TextView android:id="@+id/greeting" android:layout_width="0dp" android:layout_height="wrap_content"
-                android:layout_weight="1" android:textColor="#FFFFFFFF" android:textSize="46sp" />
+                android:layout_weight="1" android:textColor="#FFFFFFFF" android:textSize="36sp" />
             <TextView android:id="@+id/clock" android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:textColor="#CCFFFFFF" android:textSize="28sp" />
+                android:textColor="#CCFFFFFF" android:textSize="22sp" />
         </LinearLayout>
 
         <LinearLayout

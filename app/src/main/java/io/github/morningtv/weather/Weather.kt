@@ -14,7 +14,7 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
-data class HourPoint(val hour: Int, val tempC: Int, val code: Int)
+data class HourPoint(val hour: Int, val tempC: Int, val code: Int, val isDay: Boolean = true)
 
 data class WeatherSummary(
     val nowTempC: Int,
@@ -28,7 +28,10 @@ data class WeatherSummary(
     val hours: List<HourPoint>,
     /** Every hour of the day (0..23) for the time graph. */
     val allHours: List<HourPoint> = emptyList(),
-)
+) {
+    /** Daylight at [hour] according to the forecast (true if unknown). */
+    fun isDayAt(hour: Int): Boolean = allHours.firstOrNull { it.hour == hour }?.isDay ?: true
+}
 
 /** Forecast tiles: every second hour from 08:00 to 22:00. */
 private val SHOWN_HOURS = listOf(8, 10, 12, 14, 16, 18, 20, 22)
@@ -38,7 +41,7 @@ private const val RAIN_THRESHOLD = 30
 fun forecastUrl(lat: Double, lon: Double, zone: ZoneId): String =
     "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon" +
         "&current=temperature_2m,weather_code" +
-        "&hourly=temperature_2m,precipitation_probability,weather_code" +
+        "&hourly=temperature_2m,precipitation_probability,weather_code,is_day" +
         "&daily=temperature_2m_max,temperature_2m_min" +
         "&timezone=${URLEncoder.encode(zone.id, "UTF-8")}&forecast_days=1"
 
@@ -53,6 +56,9 @@ fun parseForecast(json: String, nowHour: Int): WeatherSummary? = runCatching {
     val temps = hourly.arr("temperature_2m").map { it.jsonPrimitive.double }
     val probs = hourly.arr("precipitation_probability").map { it.jsonPrimitive.contentOrNull?.toIntOrNull() ?: 0 }
     val codes = hourly.arr("weather_code").map { it.jsonPrimitive.int }
+    // is_day is optional; without it, 06:00-18:59 counts as day.
+    val days = hourly["is_day"]?.jsonArray?.map { it.jsonPrimitive.int == 1 }
+    fun dayAt(i: Int) = days?.getOrNull(i) ?: (hoursOfDay[i] in 6..18)
 
     val ahead = hoursOfDay.indices.filter { hoursOfDay[it] >= nowHour }
     WeatherSummary(
@@ -64,9 +70,9 @@ fun parseForecast(json: String, nowHour: Int): WeatherSummary? = runCatching {
         rainFromHour = ahead.firstOrNull { probs[it] >= RAIN_THRESHOLD }?.let { hoursOfDay[it] },
         hours = SHOWN_HOURS.filter { it >= nowHour }.mapNotNull { h ->
             val i = hoursOfDay.indexOf(h)
-            if (i < 0) null else HourPoint(h, temps[i].roundToInt(), codes[i])
+            if (i < 0) null else HourPoint(h, temps[i].roundToInt(), codes[i], dayAt(i))
         },
-        allHours = hoursOfDay.indices.map { HourPoint(hoursOfDay[it], temps[it].roundToInt(), codes[it]) },
+        allHours = hoursOfDay.indices.map { HourPoint(hoursOfDay[it], temps[it].roundToInt(), codes[it], dayAt(it)) },
     )
 }.getOrNull()
 
@@ -85,18 +91,18 @@ fun weatherLabel(code: Int, t: Texts = Texts.EN): String = when (code) {
     else -> t.cloudy
 }
 
-/** Emoji for a WMO weather code; clear or mostly clear evening hours (>= 20) show a moon. */
-fun weatherIcon(code: Int, hour: Int = 12): String = when {
-    hour >= 20 && code in 0..1 -> "🌙"
+/** Emoji for a WMO weather code; clear or mostly clear nights ([isDay] false) show a moon. */
+fun weatherIcon(code: Int, isDay: Boolean = true): String = when {
+    !isDay && code in 0..1 -> "🌙"
     else -> weatherIconDay(code)
 }
 
 private fun weatherIconDay(code: Int): String = when (code) {
-    0 -> "☀"
+    0 -> "☀\uFE0F"
     1, 2 -> "⛅"
     45, 48 -> "🌫"
     in 51..67, in 80..82 -> "🌧"
-    in 71..77, 85, 86 -> "❄"
+    in 71..77, 85, 86 -> "❄\uFE0F"
     in 95..99 -> "⛈"
     else -> "☁"
 }

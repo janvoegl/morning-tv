@@ -269,7 +269,7 @@ class MainActivity : Activity() {
             text(R.id.weatherDetailWide).text = ""
             return
         }
-        text(R.id.weatherNow).text = "${weatherIcon(w.nowCode)} ${w.nowTempC}°"
+        text(R.id.weatherNow).text = "${weatherIcon(w.nowCode, w.isDayAt(LocalTime.now(config.timezone).hour))} ${temp(w.nowTempC)}"
         text(R.id.weatherLabel).text = weatherLabel(w.nowCode, t)
         val detail = "${t.highLow(w.highC, w.lowC)}\n${rainLine(w, t)}"
         text(R.id.weatherDetail).text = detail
@@ -288,8 +288,8 @@ class MainActivity : Activity() {
                 text = s; textSize = size; setTextColor(color); gravity = Gravity.CENTER
             })
             line("%02d".format(h.hour), if (wide) 19f else 14f, 0xCCFFFFFF.toInt())
-            line("${h.tempC}°", if (wide) 24f else 17f, 0xFFFFFFFF.toInt())
-            line(weatherIcon(h.code, h.hour), if (wide) 24f else 17f, 0xFFFFFFFF.toInt())
+            line(temp(h.tempC), if (wide) 24f else 17f, 0xFFFFFFFF.toInt())
+            line(weatherIcon(h.code, h.isDay), if (wide) 24f else 17f, 0xFFFFFFFF.toInt())
             hours.addView(tile, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
                 marginStart = (2.5f * d).toInt(); marginEnd = (2.5f * d).toInt()
             })
@@ -348,7 +348,7 @@ class MainActivity : Activity() {
             text(R.id.gLabel).text = ""
             text(R.id.gDetail).text = ""
         } else {
-            text(R.id.gNow).text = "${weatherIcon(w.nowCode, now.hour)} ${w.nowTempC}°"
+            text(R.id.gNow).text = "${weatherIcon(w.nowCode, w.isDayAt(now.hour))} ${temp(w.nowTempC)}"
             text(R.id.gLabel).text = weatherLabel(w.nowCode, t)
             text(R.id.gDetail).text = "${t.highLow(w.highC, w.lowC)} · ${rainLine(w, t)}" + if (place.isEmpty()) "" else "\n$place"
         }
@@ -364,7 +364,7 @@ class MainActivity : Activity() {
                 marginStart = (8 * d).toInt()
             })
         }
-        val hours = w?.allHours.orEmpty().map { GraphHour(it.hour, it.tempC, weatherIcon(it.code, it.hour)) }
+        val hours = w?.allHours.orEmpty().map { GraphHour(it.hour, it.tempC, weatherIcon(it.code, it.isDay)) }
         val byHour = hours.associateBy { it.hour }
         val palette = intArrayOf(0xFF7FD8FF.toInt(), 0xFF9CF08C.toInt(), 0xFFFF9BDB.toInt(), 0xFFFFC27A.toInt(), 0xFFC9A8FF.toInt(), 0xFF7FFFE0.toInt(), 0xFFFFA0A0.toInt())
         fun hm(min: Int) = "%02d:%02d".format(min / 60 % 24, min % 60)
@@ -372,7 +372,7 @@ class MainActivity : Activity() {
         val events = timed.mapIndexed { i, e ->
             val h = byHour[e.startMin / 60]
             GraphEvent(e.title, "${hm(e.startMin)} – ${hm(e.endMin)}", e.startMin, e.endMin, palette[i % palette.size],
-                h?.let { "${it.icon} ${it.tempC}°".replace("-", "−") }.orEmpty())
+                h?.let { "${it.icon} ${temp(it.tempC)}" }.orEmpty())
         }
         val range = graphRange(nowMin, events.map { io.github.morningtv.ui.TimelineEvent(it.startMin, it.endMin, 0) })
         findViewById<TimeGraphView>(R.id.graph).apply {
@@ -460,6 +460,9 @@ class MainActivity : Activity() {
                 .apply { bottomMargin = (8 * d).toInt() })
         }
     }
+
+    /** "-1°" with a proper minus sign. */
+    private fun temp(c: Int) = "$c°".replace("-", "−")
 
     private fun renderClock() {
         text(R.id.clock).text = ZonedDateTime.now(config.timezone).format(DateTimeFormatter.ofPattern(t.clockPattern, t.locale))

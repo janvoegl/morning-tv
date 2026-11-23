@@ -53,12 +53,12 @@ class SettingsOverlay(
             background = GradientDrawable().apply { setColor(0xF01E1A33.toInt()); cornerRadius = 20 * d }
             setPadding((28 * d).toInt(), (22 * d).toInt(), (28 * d).toInt(), (18 * d).toInt())
         }
-        panel.addView(label(st.title, 24f, Color.WHITE, bold = true))
+        panel.addView(label(st.title, 20f, Color.WHITE, bold = true))
         val rows = LinearLayout(activity).apply { orientation = LinearLayout.VERTICAL }
         list = rows
         panel.addView(rows, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = (12 * d).toInt() })
-        panel.addView(label(st.keysHint, 12f, 0xB3FFFFFF.toInt()), LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = (12 * d).toInt() })
-        scrim.addView(panel, FrameLayout.LayoutParams((620 * d).toInt(), ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER))
+        panel.addView(label(st.keysHint, 11f, 0xB3FFFFFF.toInt()), LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = (12 * d).toInt() })
+        scrim.addView(panel, FrameLayout.LayoutParams((540 * d).toInt(), ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER))
         parent.addView(scrim, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
         view = scrim
         refresh(0)
@@ -89,16 +89,16 @@ class SettingsOverlay(
                     addState(intArrayOf(android.R.attr.state_focused), GradientDrawable().apply { setColor(0x40FFFFFF); cornerRadius = 10 * d })
                     addState(intArrayOf(), GradientDrawable().apply { setColor(Color.TRANSPARENT) })
                 }
-                setPadding((14 * d).toInt(), (9 * d).toInt(), (14 * d).toInt(), (9 * d).toInt())
+                setPadding((14 * d).toInt(), (7 * d).toInt(), (14 * d).toInt(), (7 * d).toInt())
                 setOnKeyListener { _, code, ev -> ev.action == KeyEvent.ACTION_DOWN && handleKey(row, i, code) }
             }
             val muted = row.kind == RowKind.UNAVAILABLE
-            line.addView(label(row.label, 16f, if (muted) 0x80FFFFFF.toInt() else Color.WHITE), LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            line.addView(label(row.label, 14f, if (muted) 0x80FFFFFF.toInt() else Color.WHITE), LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
             line.addView(label(
                 when (row.kind) {
                     RowKind.CHOICE -> "◀  ${row.value}  ▶"
                     else -> row.value
-                }, 16f, if (muted) 0x80FFFFFF.toInt() else 0xFFFFFFFF.toInt(), bold = true,
+                }, 14f, if (muted) 0x80FFFFFF.toInt() else 0xFFFFFFFF.toInt(), bold = true,
             ))
             box.addView(line)
             if (i == focusIndex) line.post { line.requestFocus() }

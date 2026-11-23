@@ -44,14 +44,15 @@ class TimelineView @JvmOverloads constructor(context: Context, attrs: AttributeS
         val tl = timeline ?: return
         val gap = 16 * d
         val colW = (width - gap) / 2
-        val rowH = height.toFloat() / tl.rowsPerColumn
+        val top = 8 * d  // room for the first hour label, which is centred on its line
+        val rowH = (height - top) / tl.rowsPerColumn
         val labelW = 50 * d
         for (c in 0..1) {
             val x0 = c * (colW + gap)
             for (r in 0 until tl.rowsPerColumn) {
                 val hour = tl.firstHour + c * tl.rowsPerColumn + r
                 if (hour >= tl.endHour) break
-                val y = r * rowH + d
+                val y = top + r * rowH + d
                 canvas.drawText("%02d%s".format(hour, hourSuffix), x0, y + labelPaint.textSize * 0.35f, labelPaint)
                 canvas.drawLine(x0 + labelW, y, x0 + colW, y, linePaint)
             }
@@ -59,9 +60,9 @@ class TimelineView @JvmOverloads constructor(context: Context, attrs: AttributeS
         for (b in tl.blocks) {
             val e = entries.getOrNull(b.index) ?: continue
             val x0 = b.column * (colW + gap) + labelW
-            val top = b.topHours * rowH + 2 * d
+            val bTop = top + b.topHours * rowH + 2 * d
             val h = b.heightHours * rowH - 3 * d
-            val rect = RectF(x0, top, b.column * (colW + gap) + colW, top + h)
+            val rect = RectF(x0, bTop, b.column * (colW + gap) + colW, bTop + h)
             blockPaint.color = blend(e.color, 0xFF6A2F9A.toInt(), 0.62f)
             canvas.drawRoundRect(rect, 6 * d, 6 * d, blockPaint)
             barPaint.color = e.color

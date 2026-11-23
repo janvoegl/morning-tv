@@ -79,7 +79,10 @@ class TimeGraphView @JvmOverloads constructor(context: Context, attrs: Attribute
             val lx = (h - r.firstHour) * cw
             gridPaint.color = if (h % 3 == 0) 0x61FFFFFF else 0x38FFFFFF
             canvas.drawLine(lx, gridTop, lx, height.toFloat(), gridPaint)
-            if (kotlin.math.abs(h * 60f - g.nowMin) > 36f) canvas.drawText("%02d".format(h), lx, 12 * d, hourPaint)
+            if (kotlin.math.abs(h * 60f - g.nowMin) > 36f) {
+                val half = hourPaint.measureText("00") / 2
+                canvas.drawText("%02d".format(h), lx.coerceIn(half, w - half), 12 * d, hourPaint)
+            }
         }
         // past
         val nowX = x(g.nowMin.toFloat())
@@ -118,6 +121,12 @@ class TimeGraphView @JvmOverloads constructor(context: Context, attrs: Attribute
             ChipRequest(i, e.startMin, chipW)
         }
         val layout = layoutChips(measured, { x(it.toFloat()) }, w, 6 * d)
+        // Duration bars for every appointment, also those whose chip did not fit.
+        g.events.forEach { e ->
+            fill.color = e.color
+            val ex0 = x(e.startMin.toFloat()); val ex1 = max(ex0 + 6 * d, x(e.endMin.toFloat()))
+            canvas.drawRoundRect(RectF(ex0, base - 10 * d, ex1, base - 3 * d), 3.5f * d, 3.5f * d, fill)
+        }
         val lanes = layout.placed.groupBy { it.lane }
         var y = base + 6 * d
         var hidden = layout.hidden
@@ -132,9 +141,8 @@ class TimeGraphView @JvmOverloads constructor(context: Context, attrs: Attribute
             if (y + laneH > height) { hidden += items.size; continue }
             for ((p, e, text) in items) {
                 val cwid = measured[p.index].chipWidth
-                val ex0 = x(e.startMin.toFloat()); val ex1 = max(ex0 + 6 * d, x(e.endMin.toFloat()))
+                val ex0 = x(e.startMin.toFloat())
                 fill.color = e.color
-                canvas.drawRoundRect(RectF(ex0, base - 10 * d, ex1, base - 3 * d), 3.5f * d, 3.5f * d, fill)
                 canvas.drawRect(ex0, base - 4 * d, ex0 + 2 * d, y, fill)
                 val rect = RectF(p.left, y, p.left + cwid, y + laneH)
                 fill.color = blend(e.color, 0xFF6A2F9A.toInt(), 0.62f)

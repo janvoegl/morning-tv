@@ -39,7 +39,7 @@ class WeatherTest {
         assertEquals(
             listOf(
                 HourPoint(8, 3, 3), HourPoint(10, 4, 3), HourPoint(12, 5, 3), HourPoint(14, 6, 61),
-                HourPoint(16, 7, 3), HourPoint(18, 8, 3), HourPoint(20, 9, 3), HourPoint(22, 10, 3),
+                HourPoint(16, 7, 3), HourPoint(18, 8, 3), HourPoint(20, 9, 3, false), HourPoint(22, 10, 3, false),
             ),
             w.hours
         )
@@ -73,7 +73,9 @@ class WeatherTest {
         assertEquals("Snow", weatherLabel(73))
         assertEquals("Showers", weatherLabel(81))
         assertEquals("Thunderstorm", weatherLabel(95))
-        assertEquals("☀", weatherIcon(0))
+        assertEquals("☀\uFE0F", weatherIcon(0))
+        assertEquals("🌙", weatherIcon(0, isDay = false))
+        assertEquals("🌧", weatherIcon(61, isDay = false))
         assertEquals("🌧", weatherIcon(61))
     }
 
