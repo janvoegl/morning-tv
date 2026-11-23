@@ -3,6 +3,12 @@ package io.github.morningtv.config
 import android.content.SharedPreferences
 import java.time.ZoneId
 
+/** How two or more appointments are shown: day timeline (default) or plain list. */
+enum class CalendarStyle { TIMELINE, LIST }
+
+/** Screen layout: weather and appointments on one time graph (default) or separate cards. */
+enum class ScreenLayout { TIMELINE, CLASSIC }
+
 /** All user settings. Personal values come from the git-ignored local config via [ConfigReceiver]. */
 data class AppConfig(
     val tvPsk: String,
@@ -12,6 +18,10 @@ data class AppConfig(
     val locationName: String,
     val timezone: ZoneId,
     val standbyMinutes: Int,
+    val calendarStyle: CalendarStyle = CalendarStyle.TIMELINE,
+    val layout: ScreenLayout = ScreenLayout.TIMELINE,
+    /** Secret iCal address of the Google calendar; empty = off. Never logged or shown. */
+    val googleIcalUrl: String = "",
 ) {
     companion object {
         const val DEFAULT_STANDBY_MINUTES = 30
@@ -19,7 +29,7 @@ data class AppConfig(
         /** Config keys, identical to `config/example.properties`. */
         val KEYS = listOf(
             "tv_psk", "greeting_name", "latitude", "longitude",
-            "location_name", "timezone", "standby_minutes",
+            "location_name", "timezone", "standby_minutes", "calendar_style", "layout", "google_ical_url",
         )
 
         fun fromMap(values: Map<String, String>): AppConfig {
@@ -35,6 +45,9 @@ data class AppConfig(
                 locationName = str("location_name"),
                 timezone = zone,
                 standbyMinutes = minutes,
+                googleIcalUrl = str("google_ical_url"),
+                layout = if (str("layout").equals("classic", ignoreCase = true)) ScreenLayout.CLASSIC else ScreenLayout.TIMELINE,
+                calendarStyle = if (str("calendar_style").equals("list", ignoreCase = true)) CalendarStyle.LIST else CalendarStyle.TIMELINE,
             )
         }
     }

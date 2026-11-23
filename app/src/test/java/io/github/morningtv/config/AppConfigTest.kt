@@ -54,4 +54,24 @@ class AppConfigTest {
     fun invalidCoordinatesBecomeNaN() {
         assertTrue(AppConfig.fromMap(mapOf("latitude" to "north")).latitude.isNaN())
     }
+
+    @Test
+    fun calendarStyleDefaultsToTimelineAndAcceptsList() {
+        assertEquals(CalendarStyle.TIMELINE, AppConfig.fromMap(emptyMap()).calendarStyle)
+        assertEquals(CalendarStyle.TIMELINE, AppConfig.fromMap(mapOf("calendar_style" to "weird")).calendarStyle)
+        assertEquals(CalendarStyle.LIST, AppConfig.fromMap(mapOf("calendar_style" to "List")).calendarStyle)
+    }
+
+    @Test
+    fun layoutDefaultsToTimelineAndAcceptsClassic() {
+        assertEquals(ScreenLayout.TIMELINE, AppConfig.fromMap(emptyMap()).layout)
+        assertEquals(ScreenLayout.TIMELINE, AppConfig.fromMap(mapOf("layout" to "weird")).layout)
+        assertEquals(ScreenLayout.CLASSIC, AppConfig.fromMap(mapOf("layout" to "Classic")).layout)
+    }
+
+    @Test
+    fun googleIcalUrlIsReadAndDefaultsToEmpty() {
+        assertEquals("", AppConfig.fromMap(emptyMap()).googleIcalUrl)
+        assertEquals("https://x/y.ics", AppConfig.fromMap(mapOf("google_ical_url" to " https://x/y.ics ")).googleIcalUrl)
+    }
 }

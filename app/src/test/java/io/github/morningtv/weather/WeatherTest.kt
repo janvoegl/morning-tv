@@ -37,7 +37,10 @@ class WeatherTest {
         assertEquals(60, w.rainChance)
         assertEquals(14, w.rainFromHour)
         assertEquals(
-            listOf(HourPoint(7, 2, 3), HourPoint(9, 3, 3), HourPoint(12, 5, 3), HourPoint(15, 6, 61), HourPoint(18, 8, 3)),
+            listOf(
+                HourPoint(8, 3, 3), HourPoint(10, 4, 3), HourPoint(12, 5, 3), HourPoint(14, 6, 61),
+                HourPoint(16, 7, 3), HourPoint(18, 8, 3), HourPoint(20, 9, 3), HourPoint(22, 10, 3),
+            ),
             w.hours
         )
     }
@@ -51,7 +54,7 @@ class WeatherTest {
 
     @Test
     fun hoursSkipPast() {
-        assertEquals(listOf(12, 15, 18), parseForecast(fixture, nowHour = 10)!!.hours.map { it.hour })
+        assertEquals(listOf(10, 12, 14, 16, 18, 20, 22), parseForecast(fixture, nowHour = 10)!!.hours.map { it.hour })
     }
 
     @Test
@@ -98,5 +101,12 @@ class WeatherTest {
         val client = WeatherClient(fetch = { calls++; fixture }, sleep = {})
         assertNull(client.load(AppConfig.fromMap(emptyMap()), 7))
         assertEquals(0, calls)
+    }
+
+    @Test
+    fun allHoursCoversTheWholeDay() {
+        val all = parseForecast(fixture, nowHour = 7)!!.allHours
+        assertEquals((0..23).toList(), all.map { it.hour })
+        assertEquals(HourPoint(14, 6, 61), all[14])
     }
 }

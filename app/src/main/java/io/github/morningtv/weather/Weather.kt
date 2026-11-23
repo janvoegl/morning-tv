@@ -26,9 +26,12 @@ data class WeatherSummary(
     /** First hour from now with precipitation probability >= 30 %, or null. */
     val rainFromHour: Int?,
     val hours: List<HourPoint>,
+    /** Every hour of the day (0..23) for the time graph. */
+    val allHours: List<HourPoint> = emptyList(),
 )
 
-private val SHOWN_HOURS = listOf(7, 9, 12, 15, 18)
+/** Forecast tiles: every second hour from 08:00 to 22:00. */
+private val SHOWN_HOURS = listOf(8, 10, 12, 14, 16, 18, 20, 22)
 private const val RAIN_THRESHOLD = 30
 
 /** Open-Meteo forecast URL for one day at the given location. */
@@ -63,6 +66,7 @@ fun parseForecast(json: String, nowHour: Int): WeatherSummary? = runCatching {
             val i = hoursOfDay.indexOf(h)
             if (i < 0) null else HourPoint(h, temps[i].roundToInt(), codes[i])
         },
+        allHours = hoursOfDay.indices.map { HourPoint(hoursOfDay[it], temps[it].roundToInt(), codes[it]) },
     )
 }.getOrNull()
 
@@ -81,8 +85,13 @@ fun weatherLabel(code: Int, t: Texts = Texts.EN): String = when (code) {
     else -> t.cloudy
 }
 
-/** Emoji for a WMO weather code. */
-fun weatherIcon(code: Int): String = when (code) {
+/** Emoji for a WMO weather code; clear or mostly clear evening hours (>= 20) show a moon. */
+fun weatherIcon(code: Int, hour: Int = 12): String = when {
+    hour >= 20 && code in 0..1 -> "🌙"
+    else -> weatherIconDay(code)
+}
+
+private fun weatherIconDay(code: Int): String = when (code) {
     0 -> "☀"
     1, 2 -> "⛅"
     45, 48 -> "🌫"

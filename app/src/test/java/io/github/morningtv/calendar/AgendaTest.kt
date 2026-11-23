@@ -19,7 +19,7 @@ class AgendaTest {
     @Test
     fun parsesSingleEventInLocalTime() {
         val a = parseAgenda(payload(ev("Team meeting", "2026-11-23T09:00:00Z", "2026-11-23T10:00:00Z")), today, vienna)!!
-        assertEquals(listOf(AgendaItem("Team meeting", "10:00", false)), a.timed)
+        assertEquals(listOf(AgendaItem("Team meeting", "10:00", false, 600, 660)), a.timed)
         assertTrue(a.allDay.isEmpty())
     }
 
@@ -44,7 +44,7 @@ class AgendaTest {
     @Test
     fun eventStartedYesterdayShowsUntil() {
         val a = parseAgenda(payload(ev("Night shift", "2026-11-22T22:00:00+01:00", "2026-11-23T11:00:00+01:00")), today, vienna)!!
-        assertEquals(listOf(AgendaItem("Night shift", "until 11:00", false)), a.timed)
+        assertEquals(listOf(AgendaItem("Night shift", "until 11:00", false, 0, 660)), a.timed)
     }
 
     @Test
@@ -104,5 +104,11 @@ class AgendaTest {
         )!!
         assertEquals(listOf("A", "C"), a.allDay.map { it.title })
         assertEquals(listOf("B"), a.timed.map { it.title })
+    }
+
+    @Test
+    fun eventRunningPastMidnightEndsAtDayEnd() {
+        val a = parseAgenda(payload(ev("Late", "2026-11-23T22:00:00+01:00", "2026-11-24T01:00:00+01:00")), today, vienna)!!
+        assertEquals(listOf(AgendaItem("Late", "22:00", false, 1320, 1440)), a.timed)
     }
 }

@@ -15,7 +15,7 @@ class ScreenTextTest {
 
     @Test
     fun manualStartExplainsWhereAppointmentsComeFrom() {
-        assertEquals(listOf(AgendaRow("", "Sent with your alarm")), agendaRows(null))
+        assertEquals(listOf(AgendaRow("", "Appointments arrive with your alarm")), agendaRows(null))
     }
 
     @Test

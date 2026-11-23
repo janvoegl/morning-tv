@@ -33,12 +33,16 @@ data class Texts(
     val showers: String,
     val thunderstorm: String,
     val cloudy: String,
+    /** Text after the hour on the timeline: "09 Uhr" / "09:00". */
+    val hourSuffix: String,
+    /** "As of 06:45". */
+    val asOf: (String) -> String,
 ) {
     companion object {
         val EN = Texts(
             locale = Locale.ENGLISH,
             goodMorning = "Good morning",
-            sentWithAlarm = "Sent with your alarm",
+            sentWithAlarm = "Appointments arrive with your alarm",
             noAppointments = "No appointments today",
             allDay = "all day",
             more = { "+$it more" },
@@ -63,12 +67,14 @@ data class Texts(
             showers = "Showers",
             thunderstorm = "Thunderstorm",
             cloudy = "Cloudy",
+            hourSuffix = ":00",
+            asOf = { "As of $it" },
         )
 
         val DE = Texts(
             locale = Locale.GERMAN,
             goodMorning = "Guten Morgen",
-            sentWithAlarm = "Kommen mit dem Wecker",
+            sentWithAlarm = "Termine kommen mit dem Wecker",
             noAppointments = "Heute keine Termine",
             allDay = "ganztägig",
             more = { "+$it weitere" },
@@ -76,7 +82,7 @@ data class Texts(
             rainFrom = { c, h -> "Regen $c % ab $h" },
             rain = { "Regen $it %" },
             noRain = "Kein Regen erwartet",
-            highLow = { h, l -> "Höchst $h° / Tiefst $l°" },
+            highLow = { h, l -> "Hoch $h° / Tief $l°" },
             tvOffInMinutes = { "TV aus in $it Min." },
             tvOffSoon = "TV aus in <1 Min.",
             weatherTitle = "WETTER HEUTE",
@@ -93,6 +99,8 @@ data class Texts(
             showers = "Regenschauer",
             thunderstorm = "Gewitter",
             cloudy = "Bewölkt",
+            hourSuffix = " Uhr",
+            asOf = { "Stand von $it Uhr" },
         )
 
         fun forLocale(locale: Locale): Texts = if (locale.language == "de") DE else EN

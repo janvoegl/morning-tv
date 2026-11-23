@@ -10,9 +10,20 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
 
-/** One line in the appointment list. [timeLabel]: "09:00", "until 11:00" or "" (all-day). */
-data class AgendaItem(val title: String, val timeLabel: String, val allDay: Boolean)
+/**
+ * One appointment. [timeLabel]: "09:00", "until 11:00" or "" (all-day).
+ * [startMin]/[endMin]: minutes since local midnight, clamped to today (0 for all-day items).
+ */
+@Serializable
+data class AgendaItem(
+    val title: String,
+    val timeLabel: String,
+    val allDay: Boolean,
+    val startMin: Int = 0,
+    val endMin: Int = 0,
+)
 
+@Serializable
 data class Agenda(val timed: List<AgendaItem>, val allDay: List<AgendaItem>)
 
 @Serializable
@@ -29,6 +40,7 @@ private data class PayloadEvent(
     val isAllDay: Boolean get() = allDay?.content?.trim()?.lowercase() in setOf("true", "yes", "1")
 }
 
+private const val MINUTES_PER_DAY = 24 * 60
 private val json = Json { ignoreUnknownKeys = true }
 private val HHMM = DateTimeFormatter.ofPattern("HH:mm")
 
@@ -53,7 +65,9 @@ fun parseAgenda(text: String, today: LocalDate, zone: ZoneId, t: Texts = Texts.E
             allDay += AgendaItem(title, "", true)
         } else {
             val label = if (start < dayStart) t.until(end.format(HHMM)) else start.format(HHMM)
-            timed += start to AgendaItem(title, label, false)
+            val startMin = if (start < dayStart) 0 else start.hour * 60 + start.minute
+            val endMin = if (end >= dayEnd) MINUTES_PER_DAY else end.hour * 60 + end.minute
+            timed += start to AgendaItem(title, label, false, startMin, endMin)
         }
     }
     return Agenda(timed.sortedBy { it.first }.map { it.second }, allDay)
