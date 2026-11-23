@@ -45,7 +45,7 @@ Create a new Shortcut named **Morning TV** with these actions.
    - Get Contents of URL (`/sony/system`), JSON body:
      `method` = `setPowerStatus`, `id` (Number) = `1`, `version` = `1.0`, `params` (Array) → one **Dictionary** item with `status` (Boolean) = **true**.
    - **Text** `false` → **Set Variable** *Ready*. **Wait** 3 seconds.
-   - **Repeat** 8 times (that is until about 10 seconds after the wake call): **If** *Ready* **is** `false`: Get Contents of URL (`getPowerStatus` as in step 3); **If** it **contains** `active`: **Text** `true` → **Set Variable** *Ready*; **Otherwise**: **Wait** 1 second. **End If**. **End If**. **End Repeat**.
+   - **Repeat** 7 times (that is until about 10 seconds after the wake call): **If** *Ready* **is** `false`: Get Contents of URL (`getPowerStatus` as in step 3); **If** it **contains** `active`: **Text** `true` → **Set Variable** *Ready*; **Otherwise**: **Wait** 1 second. **End If**. **End If**. **End Repeat**.
    - **End If**.
    (The TV reports "on" after about 4 s. The loop continues as soon as it does, instead of always waiting 8 s. If it never reports "on", the Shortcut still tries to launch after 10 s and the safety net in step 12 applies.)
 

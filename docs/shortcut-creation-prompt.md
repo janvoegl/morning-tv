@@ -40,7 +40,7 @@ If TVOn is "false":
                      params: [ { status: true (BOOLEAN) } ] }
     Text "false" -> Set Variable Ready
     Wait 3 seconds
-    Repeat 8 times:
+    Repeat 7 times:
         If Ready is "false":
             Get Contents of URL (same request as in step 2) -> CheckReply
             If CheckReply contains "active":
