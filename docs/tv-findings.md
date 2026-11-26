@@ -14,6 +14,7 @@ Measured on the reference TV: Sony BRAVIA KD-55XE8505 (2017), Android 9, Wake-on
 - The launched activity gets `action=MAIN`, category `LEANBACK_LAUNCHER`, no data URI, and a **byte-array extra `PostBody`** holding the `data` string as UTF-8 (umlauts arrive intact).
 - Without `data`, `PostBody` is present but **empty** (0 bytes). A launch from the TV's home screen has no `PostBody`.
 - **Size limit:** a `data` string of 5.7 KB arrived; 8.6 KB and larger were dropped silently (empty HTTP reply, app not launched with the data). Keep the payload under **5 KB** (about 35 events with short fields).
+- What the iPhone really sends (German iPhone, checked 2026-11-26): `allDay` is the text `Ja`/`Nein` (or `true`/`false` if the Shortcut converts it), a Dictionary converted to text can give `events` as a **string that holds the JSON**, and `keepOn` may be the text `"0"`/`"1"`. The app accepts all of these. A payload that is not valid JSON (for example doubled braces) loses the events and `keepOn` together and shows "no appointments".
 - App URI pattern: `com.sony.dtv.<package>.<activity class>`, e.g. `com.sony.dtv.io.github.morningtv.io.github.morningtv.MainActivity`.
 
 ## Decision
