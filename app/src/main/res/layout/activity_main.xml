@@ -22,7 +22,8 @@
             <TextView android:id="@+id/greeting" android:layout_width="0dp" android:layout_height="wrap_content"
                 android:layout_weight="1" android:textColor="#FFFFFFFF" android:textSize="36sp" />
             <TextView android:id="@+id/clock" android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:textColor="#CCFFFFFF" android:textSize="22sp" />
+                android:textColor="#FFFFFFFF" android:textSize="30sp" android:textStyle="bold"
+                android:shadowColor="#66000000" android:shadowDx="0" android:shadowDy="2" android:shadowRadius="6" />
         </LinearLayout>
 
         <LinearLayout
@@ -75,9 +76,9 @@
         </LinearLayout>
 
         <LinearLayout android:id="@+id/graphCard" android:layout_width="match_parent" android:layout_height="0dp"
-            android:layout_marginTop="22dp" android:layout_weight="1" android:background="@drawable/card_bg"
-            android:orientation="vertical" android:paddingStart="24dp" android:paddingTop="20dp"
-            android:paddingEnd="24dp" android:paddingBottom="16dp" android:visibility="gone">
+            android:layout_marginTop="22dp" android:layout_weight="1"
+            android:orientation="vertical" android:paddingTop="20dp"
+            android:paddingBottom="16dp" android:visibility="gone">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:gravity="center_vertical" android:orientation="horizontal">
                 <TextView android:id="@+id/gNow" android:layout_width="wrap_content" android:layout_height="wrap_content"
