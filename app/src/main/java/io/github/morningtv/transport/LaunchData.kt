@@ -14,10 +14,10 @@ fun extractPayload(postBody: ByteArray?): String? =
     postBody?.toString(Charsets.UTF_8)?.takeIf { it.isNotBlank() }
 
 /**
- * True if the Shortcut marked this start with `"keepOn": true` (or "Yes"/"1" as text): the TV was already on, so the
+ * True if the Shortcut marked this start with `"keepOn": true` (or "Yes"/"Ja"/"1" as text): the TV was already on, so the
  * app shows its screen but must not arm the standby timer and never switches the TV off.
  */
 fun keepsTvOn(payload: String): Boolean = runCatching {
     val v = kotlinx.serialization.json.Json.parseToJsonElement(payload).jsonObject["keepOn"]?.jsonPrimitive?.content
-    v?.trim()?.lowercase() in setOf("true", "yes", "1")
+    v?.trim()?.lowercase() in setOf("true", "yes", "1", "ja")
 }.getOrDefault(false)

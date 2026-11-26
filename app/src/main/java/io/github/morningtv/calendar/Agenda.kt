@@ -8,7 +8,11 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.decodeFromJsonElement
 
 /**
  * One appointment. [timeLabel]: "09:00", "until 11:00" or "" (all-day).
@@ -27,9 +31,6 @@ data class AgendaItem(
 data class Agenda(val timed: List<AgendaItem>, val allDay: List<AgendaItem>)
 
 @Serializable
-private data class Payload(val events: List<PayloadEvent> = emptyList())
-
-@Serializable
 private data class PayloadEvent(
     val title: String = "",
     val start: String = "",
@@ -37,7 +38,7 @@ private data class PayloadEvent(
     /** JSON boolean, or text such as "Yes"/"No" as the iPhone Shortcuts app may send it. */
     val allDay: JsonPrimitive? = null,
 ) {
-    val isAllDay: Boolean get() = allDay?.content?.trim()?.lowercase() in setOf("true", "yes", "1")
+    val isAllDay: Boolean get() = allDay?.content?.trim()?.lowercase() in setOf("true", "yes", "1", "ja")
 }
 
 private const val MINUTES_PER_DAY = 24 * 60
@@ -49,13 +50,15 @@ private val HHMM = DateTimeFormatter.ofPattern("HH:mm")
  * Events that don't touch [today] in [zone] are dropped; events with unreadable dates are skipped.
  */
 fun parseAgenda(text: String, today: LocalDate, zone: ZoneId, t: Texts = Texts.EN): Agenda? {
-    val payload = runCatching { json.decodeFromString<Payload>(text) }.getOrNull() ?: return null
+    val root = runCatching { json.parseToJsonElement(text) }.getOrNull() as? JsonObject ?: return null
+    val eventsArray = normaliseEvents(root["events"]) ?: return null
     val dayStart = today.atStartOfDay(zone)
     val dayEnd = today.plusDays(1).atStartOfDay(zone)
 
     val timed = mutableListOf<Pair<ZonedDateTime, AgendaItem>>()
     val allDay = mutableListOf<AgendaItem>()
-    for (e in payload.events) {
+    for (elem in eventsArray) {
+        val e = runCatching { json.decodeFromJsonElement<PayloadEvent>(elem) }.getOrNull() ?: continue
         val start = parseTime(e.start, zone) ?: continue
         val end = parseTime(e.end, zone) ?: start
         val touchesToday = start < dayEnd && (end > dayStart || start >= dayStart)
@@ -71,6 +74,64 @@ fun parseAgenda(text: String, today: LocalDate, zone: ZoneId, t: Texts = Texts.E
         }
     }
     return Agenda(timed.sortedBy { it.first }.map { it.second }, allDay)
+}
+
+private fun normaliseEvents(element: JsonElement?): JsonArray? {
+    if (element == null) return JsonArray(emptyList())
+    if (element is JsonArray) return element
+    if (element is JsonObject) return JsonArray(listOf(element))
+    if (element is JsonPrimitive && element.isString) {
+        val s = element.content.trim()
+        if (s.isEmpty() || s == "[]") return JsonArray(emptyList())
+        if (s.startsWith("[") && s.endsWith("]")) {
+            val parsed = runCatching { json.parseToJsonElement(s) }.getOrNull()
+            if (parsed is JsonArray) return parsed
+        }
+        val objects = splitJsonObjects(s).mapNotNull { objStr ->
+            runCatching { json.parseToJsonElement(objStr) }.getOrNull()
+        }
+        return JsonArray(objects)
+    }
+    return null
+}
+
+private fun splitJsonObjects(s: String): List<String> {
+    val results = mutableListOf<String>()
+    var depth = 0
+    var start = -1
+    var inString = false
+    var escape = false
+
+    for (i in s.indices) {
+        val c = s[i]
+        if (inString) {
+            if (escape) {
+                escape = false
+            } else if (c == '\\') {
+                escape = true
+            } else if (c == '"') {
+                inString = false
+            }
+        } else {
+            when (c) {
+                '"' -> inString = true
+                '{' -> {
+                    if (depth == 0) start = i
+                    depth++
+                }
+                '}' -> {
+                    if (depth > 0) {
+                        depth--
+                        if (depth == 0 && start != -1) {
+                            results += s.substring(start, i + 1)
+                            start = -1
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return results
 }
 
 private fun parseTime(s: String, zone: ZoneId): ZonedDateTime? =
